@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { MaterialFormDialog } from '@/components/catalogo/material-form-dialog'
+import { MaterialImageDialog } from '@/components/catalogo/material-image-dialog'
 import { setMaterialCatalogoAtivo } from '@/app/(app)/catalogo/actions'
 import type { CategoriaMaterial, MaterialCatalogo } from '@/types/database'
 
@@ -20,11 +21,13 @@ export function MateriaisTable({
   materiais,
   categorias,
   categoriasPorId,
+  imagemPorMaterial,
   canManage,
 }: {
   materiais: MaterialCatalogo[]
   categorias: CategoriaMaterial[]
   categoriasPorId: Record<string, string>
+  imagemPorMaterial: Record<string, string>
   canManage: boolean
 }) {
   if (materiais.length === 0) {
@@ -40,6 +43,7 @@ export function MateriaisTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Imagem</TableHead>
             <TableHead>Material</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Unidade</TableHead>
@@ -51,6 +55,20 @@ export function MateriaisTable({
         <TableBody>
           {materiais.map((material) => (
             <TableRow key={material.id}>
+              <TableCell>
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-[10px] text-muted-foreground">
+                  {imagemPorMaterial[material.id] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imagemPorMaterial[material.id]}
+                      alt={material.nome_padronizado}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="px-1">Sem imagem</span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{material.nome_padronizado}</TableCell>
               <TableCell>
                 {material.categoria_id ? categoriasPorId[material.categoria_id] ?? '-' : '-'}
@@ -81,6 +99,14 @@ export function MateriaisTable({
               </TableCell>
               {canManage ? (
                 <TableCell className="flex justify-end gap-2">
+                  <MaterialImageDialog
+                    materialId={material.id}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        {imagemPorMaterial[material.id] ? 'Trocar imagem' : 'Enviar imagem'}
+                      </Button>
+                    }
+                  />
                   <MaterialFormDialog
                     material={material}
                     categorias={categorias}

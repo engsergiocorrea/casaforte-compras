@@ -44,7 +44,7 @@ function ConfidenceBadge({ confianca }: { confianca: number | null }) {
 
 function imageStatusLabel(item: PedidoCompraItem) {
   if (!item.imagem_referencia_url) {
-    return 'Sem imagem cadastrada. Cadastre uma imagem no catálogo ou configure busca de imagem.'
+    return 'Sem imagem cadastrada'
   }
   if (item.imagem_aprovada) {
     return 'Imagem aprovada'
@@ -96,20 +96,17 @@ export function AiPreparationPanel({
             </div>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-[80px_1fr]">
-              <div className="space-y-2">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-xs text-muted-foreground">
-                  {item.imagem_referencia_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.imagem_referencia_url}
-                      alt={item.nome_padronizado || item.nome_material}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <span className="px-1">Sem imagem</span>
-                  )}
-                </div>
-                {canEdit ? <ItemImageActions item={item} /> : null}
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-xs text-muted-foreground">
+                {item.imagem_referencia_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imagem_referencia_url}
+                    alt={item.nome_padronizado || item.nome_material}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <span className="px-1">Sem imagem</span>
+                )}
               </div>
 
               <div className="space-y-1 text-sm">
@@ -140,6 +137,12 @@ export function AiPreparationPanel({
                 ) : null}
               </div>
             </div>
+
+            {canEdit ? (
+              <div className="mt-3">
+                <ItemImageActions item={item} />
+              </div>
+            ) : null}
           </div>
         ))}
       </CardContent>

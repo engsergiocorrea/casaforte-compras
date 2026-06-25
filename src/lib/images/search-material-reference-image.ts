@@ -19,19 +19,18 @@ type SearchMaterialReferenceImageResult = {
 export async function searchMaterialReferenceImage({
   termo,
 }: SearchMaterialReferenceImageInput): Promise<SearchMaterialReferenceImageResult> {
-  const provider = process.env.IMAGE_SEARCH_PROVIDER?.trim().toLowerCase()
+  const provider = (process.env.IMAGE_SEARCH_PROVIDER?.trim().toLowerCase() || 'none') as
+    | 'none'
+    | 'brave'
+    | 'google'
+    | string
 
-  console.warn('[ImageSearch] provider:', provider || '(não configurado)')
+  if (provider === 'none' || !termo) {
+    return null
+  }
+
+  console.warn('[ImageSearch] provider:', provider)
   console.warn('[ImageSearch] termo:', termo)
-
-  if (!provider) {
-    console.warn('[ImageSearch] Provider de busca de imagem não configurado.')
-    return null
-  }
-
-  if (!termo) {
-    return null
-  }
 
   try {
     if (provider === 'brave') {

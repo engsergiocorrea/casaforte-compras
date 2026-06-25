@@ -11,14 +11,27 @@ export default async function CatalogoPage() {
   const profile = await getCurrentUser()
   const canManage = canManageCatalog(profile?.role)
 
-  const [{ data: materiais, error: materiaisError }, { data: categorias, error: categoriasError }] =
-    await Promise.all([
-      supabase.from('materiais_catalogo').select('*').order('created_at', { ascending: false }),
-      supabase.from('categorias_materiais').select('*').eq('ativo', true).order('nome'),
-    ])
+  const [
+    { data: materiais, error: materiaisError },
+    { data: categorias, error: categoriasError },
+    { data: imagensAprovadas },
+  ] = await Promise.all([
+    supabase.from('materiais_catalogo').select('*').order('created_at', { ascending: false }),
+    supabase.from('categorias_materiais').select('*').eq('ativo', true).order('nome'),
+    supabase
+      .from('material_images')
+      .select('material_catalogo_id, image_url')
+      .eq('aprovado', true)
+      .eq('principal', true),
+  ])
 
   const categoriasList = (categorias as CategoriaMaterial[]) ?? []
   const categoriasPorId = Object.fromEntries(categoriasList.map((c) => [c.id, c.nome]))
+  const imagemPorMaterial: Record<string, string> = Object.fromEntries(
+    (imagensAprovadas ?? [])
+      .filter((img) => !!img.material_catalogo_id)
+      .map((img) => [img.material_catalogo_id as string, img.image_url])
+  )
   const error = materiaisError || categoriasError
 
   return (
@@ -47,6 +60,7 @@ export default async function CatalogoPage() {
           materiais={(materiais as MaterialCatalogo[]) ?? []}
           categorias={categoriasList}
           categoriasPorId={categoriasPorId}
+          imagemPorMaterial={imagemPorMaterial}
           canManage={canManage}
         />
       )}

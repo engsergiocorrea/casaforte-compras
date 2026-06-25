@@ -7,9 +7,27 @@ import { Button } from '@/components/ui/button'
 import { UploadItemImageDialog } from '@/components/pedidos/upload-item-image-dialog'
 import type { PedidoCompraItem } from '@/types/database'
 
+function googleImagesUrl(termo: string) {
+  return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`
+}
+
+function SearchGoogleImagesButton({ termo }: { termo: string }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      render={<a href={googleImagesUrl(termo)} target="_blank" rel="noopener noreferrer" />}
+    >
+      Buscar no Google Imagens
+    </Button>
+  )
+}
+
 export function ItemImageActions({ item }: { item: PedidoCompraItem }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const termoBusca = item.nome_padronizado || item.nome_material
 
   function handleApprove() {
     startTransition(async () => {
@@ -53,22 +71,31 @@ export function ItemImageActions({ item }: { item: PedidoCompraItem }) {
 
   if (!item.imagem_referencia_url) {
     return (
-      <UploadItemImageDialog
-        itemId={item.id}
-        title="Adicionar imagem"
-        trigger={
-          <Button type="button" variant="outline" size="sm" disabled={isPending}>
-            Adicionar imagem
-          </Button>
-        }
-      />
+      <div className="flex flex-wrap gap-2">
+        <UploadItemImageDialog
+          itemId={item.id}
+          title="Enviar foto"
+          trigger={
+            <Button type="button" variant="outline" size="sm" disabled={isPending}>
+              Enviar foto
+            </Button>
+          }
+        />
+        <SearchGoogleImagesButton termo={termoBusca} />
+      </div>
     )
   }
 
   return (
     <div className="flex flex-wrap gap-2">
       {!item.imagem_aprovada ? (
-        <Button type="button" variant="outline" size="sm" onClick={handleApprove} disabled={isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleApprove}
+          disabled={isPending}
+        >
           Aprovar imagem
         </Button>
       ) : null}
@@ -81,6 +108,7 @@ export function ItemImageActions({ item }: { item: PedidoCompraItem }) {
           </Button>
         }
       />
+      <SearchGoogleImagesButton termo={termoBusca} />
       <Button
         type="button"
         variant="outline"
