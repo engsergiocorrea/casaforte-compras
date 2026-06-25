@@ -1,11 +1,12 @@
 import { FALLBACK_ALERT_MESSAGE } from '@/lib/ai/constants'
-import { enrichWithGemini, enrichWithOpenAI } from '@/lib/ai/providers'
+import { enrichWithGemini, enrichWithOpenAI, GEMINI_KEY_ERROR_MESSAGE } from '@/lib/ai/providers'
 import type { MaterialEnrichmentInput, MaterialEnrichmentOutput } from '@/types/ai'
 
 type AiProvider = 'openai' | 'gemini'
 
 function fallbackMaterialEnrichment(
-  input: MaterialEnrichmentInput
+  input: MaterialEnrichmentInput,
+  alerta: string = FALLBACK_ALERT_MESSAGE
 ): MaterialEnrichmentOutput {
   return {
     nome_padronizado: input.nome_material,
@@ -16,7 +17,7 @@ function fallbackMaterialEnrichment(
     observacao_fornecedor:
       'Favor informar disponibilidade, prazo de entrega, valor e condição de pagamento.',
     termos_busca_imagem: [input.nome_material],
-    alertas: [FALLBACK_ALERT_MESSAGE],
+    alertas: [alerta],
     confianca: 0.3,
   }
 }
@@ -39,15 +40,11 @@ export async function enrichMaterialWithAI(
       const apiKey = process.env.GEMINI_API_KEY
       const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
-      if (!apiKey) {
-        console.warn(
-          `[IA] provider=gemini sem GEMINI_API_KEY configurada — usando fallback local. material="${material}"`
-        )
-        return fallbackMaterialEnrichment(input)
-      }
-
+      // A validação de presença/formato da chave acontece dentro do
+      // provider (enrichWithGemini), que lança GEMINI_KEY_ERROR_MESSAGE
+      // sem nunca expor o valor da chave em log.
       console.log(`[IA] chamando provider=gemini modelo=${model} material="${material}"`)
-      const result = await enrichWithGemini(input, apiKey, model)
+      const result = await enrichWithGemini(input, apiKey ?? '', model)
       console.log(`[IA] provider=gemini OK material="${material}" confianca=${result.confianca}`)
       return result
     }
@@ -69,6 +66,11 @@ export async function enrichMaterialWithAI(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'erro desconhecido'
     console.error(`[IA] provider=${provider} falhou material="${material}": ${message}`)
-    return fallbackMaterialEnrichment(input)
+
+    // A mensagem de chave ausente/inválida é segura para mostrar ao usuário
+    // (não contém a chave); demais erros (rede, cota, JSON inválido) usam o
+    // alerta genérico para não expor detalhes técnicos da API no pedido.
+    const alertaUsuario = message === GEMINI_KEY_ERROR_MESSAGE ? message : undefined
+    return fallbackMaterialEnrichment(input, alertaUsuario)
   }
 }

@@ -4,11 +4,29 @@ import { extractJsonFromText, normalizeEnrichmentOutput } from './shared'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
+// Chaves do Google AI Studio têm o formato "AIza" + ~35 caracteres
+// alfanuméricos. Isso não garante que a chave é válida na API (só o
+// Google sabe isso), mas pega o caso comum de chave vazia, copiada
+// errada ou de outro serviço (ex: colar a chave do Supabase aqui).
+const GEMINI_KEY_FORMAT = /^AIza[0-9A-Za-z_-]{30,}$/
+
+export const GEMINI_KEY_ERROR_MESSAGE =
+  'GEMINI_API_KEY ausente ou inválida. Gere uma chave no Google AI Studio.'
+
+export function isValidGeminiApiKeyFormat(apiKey: string | undefined): boolean {
+  return !!apiKey && GEMINI_KEY_FORMAT.test(apiKey.trim())
+}
+
 export async function enrichWithGemini(
   input: MaterialEnrichmentInput,
   apiKey: string,
   model: string
 ): Promise<MaterialEnrichmentOutput> {
+  if (!isValidGeminiApiKeyFormat(apiKey)) {
+    // Nunca logar o valor da chave, só o fato de ela estar ausente/inválida.
+    throw new Error(GEMINI_KEY_ERROR_MESSAGE)
+  }
+
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`
 
   const response = await fetch(url, {

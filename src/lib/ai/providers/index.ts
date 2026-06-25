@@ -1,2 +1,2 @@
 export { enrichWithOpenAI } from './openai'
-export { enrichWithGemini } from './gemini'
+export { enrichWithGemini, GEMINI_KEY_ERROR_MESSAGE, isValidGeminiApiKeyFormat } from './gemini'
