@@ -10,6 +10,7 @@ import {
   canDecideApproval,
   canEditPedido,
   canCancelPedido,
+  canGeneratePdf,
   canPrepareWithIA,
   canSendToApproval,
   canSendToReview,
@@ -85,6 +86,8 @@ export default async function PedidoDetailPage({
 
   const pedidoTyped = pedido as PedidoCompra
   const canEdit = canEditPedido(profile, pedidoTyped)
+  const itensTyped = (itens as PedidoCompraItem[]) ?? []
+  const itensComRevisao = itensTyped.filter((item) => item.precisa_revisao).length
 
   return (
     <div className="space-y-6">
@@ -106,20 +109,21 @@ export default async function PedidoDetailPage({
         canDecideApproval={canDecideApproval(profile, pedidoTyped)}
         canCancel={canCancelPedido(profile, pedidoTyped)}
         canPrepareWithIA={canPrepareWithIA(profile, pedidoTyped)}
+        canGeneratePdf={canGeneratePdf(profile, pedidoTyped)}
+        hasItens={itensTyped.length > 0}
+        pdfUrl={pedidoTyped.pdf_url}
+        itensComRevisao={itensComRevisao}
       />
 
       <PedidoItemsTable
         pedidoId={id}
-        itens={(itens as PedidoCompraItem[]) ?? []}
+        itens={itensTyped}
         categorias={(categorias as CategoriaMaterial[]) ?? []}
         materiais={(materiais as MaterialCatalogo[]) ?? []}
         canEdit={canEdit}
       />
 
-      <AiPreparationPanel
-        itens={(itens as PedidoCompraItem[]) ?? []}
-        preparadoEm={pedidoTyped.ia_preparado_em}
-      />
+      <AiPreparationPanel itens={itensTyped} preparadoEm={pedidoTyped.ia_preparado_em} />
 
       <PedidoHistory
         entries={

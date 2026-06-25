@@ -50,3 +50,12 @@ export function canPrepareWithIA(profile: Profile | null, pedido: PedidoCompra) 
   if (['aprovado', 'cancelado'].includes(pedido.status)) return false
   return isStaff(profile.role) || isOwner(profile, pedido)
 }
+
+// Gerar o documento é permitido mesmo depois de aprovado (é exatamente
+// quando o PDF passa a ser necessário para enviar ao fornecedor), mas não
+// para pedidos cancelados.
+export function canGeneratePdf(profile: Profile | null, pedido: PedidoCompra) {
+  if (!profile) return false
+  if (pedido.status === 'cancelado') return false
+  return isStaff(profile.role) || isOwner(profile, pedido)
+}
