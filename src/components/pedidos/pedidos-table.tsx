@@ -25,7 +25,7 @@ export function PedidosTable({ pedidos }: { pedidos: PedidoListItem[] }) {
   if (pedidos.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-        Nenhum pedido encontrado com os filtros atuais.
+        Nenhum pedido encontrado para os filtros selecionados.
       </div>
     )
   }

@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import type { Obra } from '@/types/database'
 
 const STATUS_OPTIONS = [
@@ -53,8 +54,11 @@ export function PedidosFilters({
     router.push(`/pedidos?${params.toString()}`)
   }
 
+  const hasActiveFilters =
+    currentStatus !== 'todos' || currentPrioridade !== 'todas' || currentObraId !== 'todas'
+
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <Select value={currentStatus} onValueChange={(value) => setParam('status', value)}>
         <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="Status" />
@@ -94,6 +98,12 @@ export function PedidosFilters({
           ))}
         </SelectContent>
       </Select>
+
+      {hasActiveFilters ? (
+        <Button variant="outline" size="sm" onClick={() => router.push('/pedidos')}>
+          Limpar filtros
+        </Button>
+      ) : null}
     </div>
   )
 }
