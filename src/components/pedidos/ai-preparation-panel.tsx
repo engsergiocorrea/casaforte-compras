@@ -1,13 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { FALLBACK_ALERT_MESSAGE } from '@/lib/ai/constants'
-import { GEMINI_KEY_ERROR_MESSAGE } from '@/lib/ai/providers'
+import { isFallbackAlert } from '@/lib/ai/constants'
 import type { PedidoCompraItem } from '@/types/database'
 
-const FALLBACK_MARKERS = [FALLBACK_ALERT_MESSAGE, GEMINI_KEY_ERROR_MESSAGE]
-
 function usedFallback(item: PedidoCompraItem) {
-  return item.ia_alertas?.some((alerta) => FALLBACK_MARKERS.includes(alerta)) ?? false
+  return item.ia_alertas?.some(isFallbackAlert) ?? false
 }
 
 function ItemStatus({ item }: { item: PedidoCompraItem }) {

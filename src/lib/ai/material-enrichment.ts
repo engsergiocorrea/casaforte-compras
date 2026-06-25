@@ -1,8 +1,10 @@
 import { FALLBACK_ALERT_MESSAGE } from '@/lib/ai/constants'
-import { enrichWithGemini, enrichWithOpenAI, GEMINI_KEY_ERROR_MESSAGE } from '@/lib/ai/providers'
+import { enrichWithGemini, enrichWithOpenAI } from '@/lib/ai/providers'
 import type { MaterialEnrichmentInput, MaterialEnrichmentOutput } from '@/types/ai'
 
 type AiProvider = 'openai' | 'gemini'
+
+const MIN_KEY_LENGTH = 10
 
 function fallbackMaterialEnrichment(
   input: MaterialEnrichmentInput,
@@ -27,6 +29,11 @@ function resolveProvider(): AiProvider {
   return configured === 'gemini' ? 'gemini' : 'openai'
 }
 
+function resumirErro(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return 'erro desconhecido'
+}
+
 // Nunca lança: qualquer falha de configuração ou da API cai no fallback
 // local seguro, para que o preparo do pedido nunca quebre por causa da IA.
 export async function enrichMaterialWithAI(
@@ -35,42 +42,61 @@ export async function enrichMaterialWithAI(
   const provider = resolveProvider()
   const material = input.nome_material
 
-  try {
-    if (provider === 'gemini') {
-      const apiKey = process.env.GEMINI_API_KEY
-      const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+  if (provider === 'gemini') {
+    const geminiApiKey = process.env.GEMINI_API_KEY?.trim()
+    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
-      // A validação de presença/formato da chave acontece dentro do
-      // provider (enrichWithGemini), que lança GEMINI_KEY_ERROR_MESSAGE
-      // sem nunca expor o valor da chave em log.
-      console.log(`[IA] chamando provider=gemini modelo=${model} material="${material}"`)
-      const result = await enrichWithGemini(input, apiKey ?? '', model)
-      console.log(`[IA] provider=gemini OK material="${material}" confianca=${result.confianca}`)
+    console.log('[AI] provider:', provider)
+    console.log('[AI] model:', model)
+    console.log('[AI] GEMINI_API_KEY existe:', Boolean(geminiApiKey))
+    console.log('[AI] GEMINI_API_KEY tamanho:', geminiApiKey?.length || 0)
+
+    if (!geminiApiKey || geminiApiKey.length <= MIN_KEY_LENGTH) {
+      console.warn(`[AI] GEMINI_API_KEY não configurada. material="${material}"`)
+      return fallbackMaterialEnrichment(input, 'GEMINI_API_KEY não configurada.')
+    }
+
+    try {
+      console.log(`[AI] chamando provider=gemini model=${model} material="${material}"`)
+      const result = await enrichWithGemini(input, geminiApiKey, model)
+      console.log(`[AI] provider=gemini OK material="${material}" confianca=${result.confianca}`)
       return result
+    } catch (error) {
+      const mensagem = resumirErro(error)
+      console.error('[AI] Gemini falhou')
+      console.error('[AI] status/mensagem:', mensagem)
+      console.error('[AI] provider:', provider)
+      console.error('[AI] model:', model)
+      console.error('[AI] material:', material)
+      return fallbackMaterialEnrichment(input, `Erro ao consultar Gemini: ${mensagem}`)
     }
+  }
 
-    const apiKey = process.env.OPENAI_API_KEY
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
 
-    if (!apiKey) {
-      console.warn(
-        `[IA] provider=openai sem OPENAI_API_KEY configurada — usando fallback local. material="${material}"`
-      )
-      return fallbackMaterialEnrichment(input)
-    }
+  console.log('[AI] provider:', provider)
+  console.log('[AI] model:', model)
+  console.log('[AI] OPENAI_API_KEY existe:', Boolean(apiKey))
+  console.log('[AI] OPENAI_API_KEY tamanho:', apiKey?.length || 0)
 
-    console.log(`[IA] chamando provider=openai modelo=${model} material="${material}"`)
+  if (!apiKey || apiKey.length <= MIN_KEY_LENGTH) {
+    console.warn(`[AI] OPENAI_API_KEY não configurada. material="${material}"`)
+    return fallbackMaterialEnrichment(input, 'OPENAI_API_KEY não configurada.')
+  }
+
+  try {
+    console.log(`[AI] chamando provider=openai model=${model} material="${material}"`)
     const result = await enrichWithOpenAI(input, apiKey, model)
-    console.log(`[IA] provider=openai OK material="${material}" confianca=${result.confianca}`)
+    console.log(`[AI] provider=openai OK material="${material}" confianca=${result.confianca}`)
     return result
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'erro desconhecido'
-    console.error(`[IA] provider=${provider} falhou material="${material}": ${message}`)
-
-    // A mensagem de chave ausente/inválida é segura para mostrar ao usuário
-    // (não contém a chave); demais erros (rede, cota, JSON inválido) usam o
-    // alerta genérico para não expor detalhes técnicos da API no pedido.
-    const alertaUsuario = message === GEMINI_KEY_ERROR_MESSAGE ? message : undefined
-    return fallbackMaterialEnrichment(input, alertaUsuario)
+    const mensagem = resumirErro(error)
+    console.error('[AI] OpenAI falhou')
+    console.error('[AI] status/mensagem:', mensagem)
+    console.error('[AI] provider:', provider)
+    console.error('[AI] model:', model)
+    console.error('[AI] material:', material)
+    return fallbackMaterialEnrichment(input, `Erro ao consultar OpenAI: ${mensagem}`)
   }
 }
