@@ -17,3 +17,9 @@ export function canSendWhatsapp(role: Role | null | undefined) {
 export function canManageCatalog(role: Role | null | undefined) {
   return isStaff(role) || role === 'engenheiro'
 }
+
+// obras, engenheiros, fornecedores e categorias seguem a mesma regra de
+// escrita das policies RLS: somente staff (admin, diretoria, compras).
+export function canManageMasterData(role: Role | null | undefined) {
+  return isStaff(role)
+}
