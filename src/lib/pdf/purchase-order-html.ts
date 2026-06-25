@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import type { Engenheiro, Obra, PedidoCompra, PedidoCompraItem, Profile } from '@/types/database'
 
 type PurchaseOrderHtmlData = {
@@ -42,6 +44,25 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleDateString('pt-BR')
 }
 
+function casaForteLogoExists() {
+  try {
+    return fs.existsSync(path.join(process.cwd(), 'public', 'logo-casa-forte.png'))
+  } catch {
+    return false
+  }
+}
+
+function renderLogo() {
+  if (!casaForteLogoExists()) {
+    return '<span class="brand-fallback">Casa Forte</span>'
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '') || ''
+  const logoUrl = `${appUrl}/logo-casa-forte.png`
+
+  return `<img class="brand-logo" src="${escapeHtml(logoUrl)}" alt="Casa Forte" />`
+}
+
 function renderItemImage(item: PedidoCompraItem) {
   if (!item.imagem_referencia_url) {
     return '<div class="no-image">Sem imagem cadastrada</div>'
@@ -59,7 +80,7 @@ function renderItemImage(item: PedidoCompraItem) {
   `
 }
 
-function renderItemRow(item: PedidoCompraItem) {
+function renderItemCard(item: PedidoCompraItem, index: number) {
   const statusBadge = item.precisa_revisao
     ? '<span class="badge badge-revisar">Revisar</span>'
     : '<span class="badge badge-ok">OK</span>'
@@ -71,30 +92,49 @@ function renderItemRow(item: PedidoCompraItem) {
           .join('')}</ul>`
       : ''
 
+  const detalhes: string[] = []
+
+  if (item.especificacao_tecnica) {
+    detalhes.push(`<p class="item-spec">${escapeHtml(item.especificacao_tecnica)}</p>`)
+  }
+  if (item.marca_preferencial) {
+    detalhes.push(
+      `<p><span class="label">Marca preferencial:</span> ${escapeHtml(item.marca_preferencial)}</p>`
+    )
+  }
+  if (item.local_de_aplicacao) {
+    detalhes.push(
+      `<p><span class="label">Local de aplicação:</span> ${escapeHtml(item.local_de_aplicacao)}</p>`
+    )
+  }
+  if (item.observacoes) {
+    detalhes.push(`<p><span class="label">Observações:</span> ${escapeHtml(item.observacoes)}</p>`)
+  }
+
   return `
-    <tr>
-      <td class="image-cell">${renderItemImage(item)}</td>
-      <td>
-        <strong>${escapeHtml(item.nome_padronizado || item.nome_material)}</strong>
-        ${
-          item.nome_padronizado && item.nome_padronizado !== item.nome_material
-            ? `<br/><small class="muted">Original: ${escapeHtml(item.nome_material)}</small>`
-            : ''
-        }
-        ${
-          item.especificacao_tecnica
-            ? `<br/><small>${escapeHtml(item.especificacao_tecnica)}</small>`
-            : ''
-        }
+    <div class="item-card">
+      <div class="item-image">${renderItemImage(item)}</div>
+      <div class="item-body">
+        <div class="item-heading">
+          <div>
+            <span class="item-index">Item ${index + 1}</span>
+            <h4>${escapeHtml(item.nome_padronizado || item.nome_material)}</h4>
+            ${
+              item.nome_padronizado && item.nome_padronizado !== item.nome_material
+                ? `<p class="muted">Original: ${escapeHtml(item.nome_material)}</p>`
+                : ''
+            }
+          </div>
+          ${statusBadge}
+        </div>
+        ${detalhes.join('')}
         ${alertas}
-      </td>
-      <td>${item.quantidade}</td>
-      <td>${escapeHtml(item.unidade || '-')}</td>
-      <td>${escapeHtml(item.marca_preferencial || '-')}</td>
-      <td>${escapeHtml(item.local_de_aplicacao || '-')}</td>
-      <td>${escapeHtml(item.observacoes || '-')}</td>
-      <td class="status-cell">${statusBadge}</td>
-    </tr>
+      </div>
+      <div class="item-qty">
+        <span class="qty-value">${item.quantidade}</span>
+        <span class="qty-unit">${escapeHtml(item.unidade || 'un')}</span>
+      </div>
+    </div>
   `
 }
 
@@ -102,8 +142,7 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
   const { pedido, obra, solicitante, engenheiro, itens } = data
 
   const itensComRevisao = itens.filter((item) => item.precisa_revisao).length
-
-  const rows = itens.map(renderItemRow).join('')
+  const cards = itens.map((item, index) => renderItemCard(item, index)).join('')
 
   return `
 <!doctype html>
@@ -111,27 +150,64 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
 <head>
   <meta charset="utf-8" />
   <title>Pedido de Compra ${pedido.numero}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
   <style>
+    :root {
+      --brand: #E8390E;
+      --ink: #211A17;
+      --muted: #6B6259;
+      --line: #E7E1DC;
+      --surface: #FAF8F6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      color: #1E1E1E;
-      margin: 32px;
+      font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+      color: var(--ink);
+      margin: 0;
+      padding: 36px 40px;
       background: #fff;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     .header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      border-bottom: 4px solid #E8390E;
-      padding-bottom: 16px;
+      gap: 24px;
+      border-bottom: 3px solid var(--brand);
+      padding-bottom: 20px;
       margin-bottom: 24px;
     }
 
-    .brand {
-      font-size: 26px;
+    .brand-logo {
+      max-height: 48px;
+      max-width: 220px;
+      object-fit: contain;
+    }
+
+    .brand-fallback {
+      font-size: 24px;
       font-weight: 800;
-      color: #E8390E;
+      color: var(--brand);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     .title {
@@ -140,111 +216,243 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
 
     .title h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
     }
 
-    .title p {
-      margin: 4px 0;
-      font-size: 13px;
+    .title .numero {
+      color: var(--brand);
+    }
+
+    .title .meta {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .badges-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--ink);
     }
 
     .info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 14px;
+      margin-bottom: 20px;
     }
 
     .info-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      background: #F7F7F7;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--surface);
     }
 
     .info-card h3 {
       margin: 0 0 8px;
-      font-size: 14px;
-      color: #E8390E;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--brand);
     }
 
     .info-card p {
-      margin: 4px 0;
-      font-size: 13px;
+      margin: 3px 0;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+
+    .info-card .muted {
+      color: var(--muted);
     }
 
     .revisao-alert {
-      margin-bottom: 16px;
-      padding: 10px 14px;
-      border-radius: 8px;
+      margin-bottom: 18px;
+      padding: 12px 16px;
+      border-radius: 10px;
       background: #FEF3C7;
       border: 1px solid #FCD34D;
       color: #92400E;
-      font-size: 13px;
-      font-weight: bold;
+      font-size: 12.5px;
+      font-weight: 700;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .observacoes {
+      margin-bottom: 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--surface);
+    }
+
+    .observacoes h3 {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--brand);
+    }
+
+    .observacoes p {
+      margin: 0;
+      font-size: 12.5px;
+    }
+
+    .section-title {
       font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 0 0 10px;
     }
 
-    th {
-      background: #1E1E1E;
-      color: white;
-      text-align: left;
-      padding: 8px;
+    .items {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      vertical-align: top;
+    .item-card {
+      display: grid;
+      grid-template-columns: 84px 1fr 70px;
+      gap: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      page-break-inside: avoid;
     }
 
-    .image-cell {
-      width: 90px;
+    .item-image {
+      width: 84px;
+      height: 84px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
+      overflow: hidden;
     }
 
-    .image-cell img {
-      max-width: 80px;
-      max-height: 80px;
+    .item-image img {
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
     }
 
     .no-image {
-      font-size: 10px;
-      color: #888;
+      font-size: 9.5px;
+      color: var(--muted);
+      padding: 0 6px;
     }
 
     .image-warning {
       font-size: 9px;
-      color: #E8390E;
+      color: var(--brand);
       margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .item-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-index {
+      font-size: 9.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .item-body h4 {
+      margin: 2px 0 4px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.005em;
+    }
+
+    .item-body p {
+      margin: 2px 0;
+      font-size: 12px;
+    }
+
+    .item-spec {
+      color: var(--ink);
+    }
+
+    .label {
+      color: var(--muted);
+      font-weight: 600;
     }
 
     .muted {
-      color: #666;
+      color: var(--muted);
     }
 
     .alertas {
-      margin: 4px 0 0;
+      margin: 6px 0 0;
       padding-left: 16px;
-      color: #b45309;
+      color: #92400e;
+      font-size: 11.5px;
     }
 
-    .status-cell {
+    .alertas li {
+      margin-bottom: 2px;
+    }
+
+    .item-qty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       text-align: center;
+      border-left: 1px solid var(--line);
+      padding-left: 12px;
+    }
+
+    .qty-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--brand);
+      line-height: 1;
+    }
+
+    .qty-unit {
+      font-size: 10.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
     }
 
     .badge {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 2px 9px;
       border-radius: 999px;
-      font-size: 11px;
-      font-weight: bold;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .badge-ok {
@@ -258,40 +466,30 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
     }
 
     .footer {
-      margin-top: 32px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
-      font-size: 11px;
-      color: #555;
+      margin-top: 28px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 10.5px;
+      color: var(--muted);
       display: flex;
       justify-content: space-between;
-    }
-
-    .observacoes {
-      margin-top: 24px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    .observacoes h3 {
-      margin-top: 0;
-      color: #E8390E;
+      gap: 12px;
     }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <div class="brand">Casa Forte</div>
-      <div>Incorporadora / Construtora</div>
+      ${renderLogo()}
+      <div class="brand-sub">Casa Forte Construtora</div>
     </div>
     <div class="title">
-      <h1>Pedido de Compra</h1>
-      <p><strong>Pedido nº:</strong> ${pedido.numero}</p>
-      <p><strong>Status:</strong> ${STATUS_LABELS[pedido.status]}</p>
-      <p><strong>Prioridade:</strong> ${PRIORIDADE_LABELS[pedido.prioridade]}</p>
-      <p><strong>Criado em:</strong> ${formatDate(pedido.created_at)}</p>
+      <h1>Pedido de Compra <span class="numero">#${pedido.numero}</span></h1>
+      <div class="badges-row">
+        <span class="pill">${escapeHtml(STATUS_LABELS[pedido.status])}</span>
+        <span class="pill">${escapeHtml(PRIORIDADE_LABELS[pedido.prioridade])}</span>
+      </div>
+      <p class="meta">Gerado em ${new Date().toLocaleString('pt-BR')}</p>
     </div>
   </div>
 
@@ -299,15 +497,16 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
     <div class="info-card">
       <h3>Obra</h3>
       <p><strong>${escapeHtml(obra?.nome || '-')}</strong></p>
-      <p>${escapeHtml(obra?.endereco || 'Endereço não informado')}</p>
-      <p>${escapeHtml([obra?.cidade, obra?.estado].filter(Boolean).join(' / ') || '')}</p>
+      <p class="muted">${escapeHtml(obra?.endereco || 'Endereço não informado')}</p>
+      <p class="muted">${escapeHtml([obra?.cidade, obra?.estado].filter(Boolean).join(' / ') || '')}</p>
+      <p><span class="label">Necessidade:</span> ${formatDate(pedido.data_necessidade)}</p>
     </div>
 
     <div class="info-card">
-      <h3>Responsáveis</h3>
-      <p><strong>Solicitante:</strong> ${escapeHtml(solicitante?.nome || '-')}</p>
-      <p><strong>Engenheiro:</strong> ${escapeHtml(engenheiro?.nome || '-')}</p>
-      <p><strong>Necessidade:</strong> ${formatDate(pedido.data_necessidade)}</p>
+      <h3>Solicitante / Responsável</h3>
+      <p><span class="label">Solicitante:</span> ${escapeHtml(solicitante?.nome || '-')}</p>
+      <p><span class="label">Engenheiro:</span> ${escapeHtml(engenheiro?.nome || '-')}</p>
+      <p><span class="label">Criado em:</span> ${formatDate(pedido.created_at)}</p>
     </div>
   </div>
 
@@ -317,39 +516,26 @@ export function generatePurchaseOrderHtml(data: PurchaseOrderHtmlData) {
       : ''
   }
 
-  <table>
-    <thead>
-      <tr>
-        <th>Imagem</th>
-        <th>Material / Especificação</th>
-        <th>Qtd.</th>
-        <th>Un.</th>
-        <th>Marca</th>
-        <th>Aplicação</th>
-        <th>Obs.</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows}
-    </tbody>
-  </table>
-
   ${
     pedido.observacoes_gerais
       ? `
         <div class="observacoes">
-          <h3>Observações Gerais</h3>
+          <h3>Observações gerais</h3>
           <p>${escapeHtml(pedido.observacoes_gerais)}</p>
         </div>
       `
       : ''
   }
 
+  <p class="section-title">Itens do pedido (${itens.length})</p>
+  <div class="items">
+    ${cards}
+  </div>
+
   <div class="footer">
     <div>
-      Casa Forte Incorporadora / Construtora — Pedido gerado automaticamente pelo sistema Casa
-      Forte Compras.
+      Casa Forte Construtora<br />
+      Pedido gerado automaticamente pelo sistema Casa Forte Compras.
     </div>
     <div>${new Date().toLocaleString('pt-BR')}</div>
   </div>

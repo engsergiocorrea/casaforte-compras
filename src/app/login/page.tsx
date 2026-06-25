@@ -1,7 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
 import { login } from './actions'
 
 export default async function LoginPage({
@@ -12,11 +13,13 @@ export default async function LoginPage({
   const { error } = await searchParams
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl font-extrabold text-primary">Casa Forte</CardTitle>
-          <CardDescription>Acesse o sistema de compras</CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-accent/40 px-4">
+      <Card className="w-full max-w-sm border-foreground/5 shadow-lg">
+        <CardHeader className="justify-items-center space-y-3 pb-2 text-center">
+          <CasaForteLogo variant="login" className="mx-auto" />
+          <CardDescription className="text-balance">
+            Sistema interno de compras e pedidos de materiais
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={login} className="space-y-4">

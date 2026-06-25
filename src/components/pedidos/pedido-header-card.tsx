@@ -26,7 +26,10 @@ export function PedidoHeaderCard({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle className="text-xl">Pedido #{pedido.numero}</CardTitle>
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Pedido de compra
+          </p>
+          <CardTitle className="text-2xl">#{pedido.numero}</CardTitle>
           <div className="mt-2 flex flex-wrap gap-2">
             <OrderStatusBadge status={pedido.status} />
             <PriorityBadge prioridade={pedido.prioridade} />

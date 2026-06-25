@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,21 +43,27 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-5">
-        <span className="text-lg font-extrabold text-sidebar-primary">Casa Forte</span>
-        <span className="text-xs text-sidebar-foreground/70">Sistema de Compras</span>
+      <SidebarHeader className="gap-2 border-b border-sidebar-border px-4 py-5">
+        <CasaForteLogo variant="sidebar" fallbackClassName="text-sidebar-foreground" />
+        <span className="text-xs font-medium tracking-wide text-sidebar-foreground/60 uppercase">
+          Sistema de Compras
+        </span>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-1 py-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/50">Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {navItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton render={<Link href={item.href} />} isActive={isActive}>
-                      <item.icon />
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={isActive}
+                      className="gap-2.5 rounded-lg font-medium data-active:bg-sidebar-primary/15 data-active:text-sidebar-primary data-active:font-semibold"
+                    >
+                      <item.icon className="size-4" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

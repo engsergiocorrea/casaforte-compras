@@ -11,14 +11,14 @@ function usedFallback(item: PedidoCompraItem) {
 function ItemStatus({ item }: { item: PedidoCompraItem }) {
   if (item.precisa_revisao) {
     return (
-      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
         Revisar
       </Badge>
     )
   }
 
   return (
-    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
       OK
     </Badge>
   )
@@ -30,10 +30,10 @@ function ConfidenceBadge({ confianca }: { confianca: number | null }) {
   const percent = Math.round(confianca * 100)
   const style =
     confianca >= 0.7
-      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
       : confianca >= 0.4
-        ? 'bg-amber-50 text-amber-700 border-amber-200'
-        : 'bg-red-50 text-red-700 border-red-200'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : 'border-red-200 bg-red-50 text-red-700'
 
   return (
     <Badge variant="outline" className={style}>
@@ -68,25 +68,28 @@ export function AiPreparationPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Preparação por IA</CardTitle>
+        <CardTitle>Preparação por IA</CardTitle>
         <p className="text-sm text-muted-foreground">
           Preparado em {new Date(preparadoEm).toLocaleString('pt-BR')}. Revise os itens marcados
           como &quot;Revisar&quot; antes de seguir com o pedido.
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {algumFallback ? (
-          <p className="rounded-md bg-amber-50 p-3 text-sm font-medium text-amber-800 border border-amber-200">
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
             A IA configurada falhou ou não está disponível. O sistema usou preparação básica de
             segurança.
           </p>
         ) : null}
 
         {itens.map((item) => (
-          <div key={item.id} className="rounded-lg border p-4">
+          <div
+            key={item.id}
+            className="rounded-xl border border-foreground/8 bg-card/60 p-4 transition-shadow hover:shadow-sm"
+          >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">Item original</p>
+                <p className="text-xs text-muted-foreground">Item original</p>
                 <p className="font-medium">{item.nome_material}</p>
               </div>
               <div className="flex gap-2">
@@ -95,8 +98,8 @@ export function AiPreparationPanel({
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-[80px_1fr]">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-xs text-muted-foreground">
+            <div className="mt-3 grid gap-4 sm:grid-cols-[96px_1fr]">
+              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-foreground/8 bg-muted text-center text-xs text-muted-foreground">
                 {item.imagem_referencia_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -109,18 +112,17 @@ export function AiPreparationPanel({
                 )}
               </div>
 
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Nome padronizado: </span>
-                  <span className="font-medium">{item.nome_padronizado || '-'}</span>
+              <div className="space-y-1.5 text-sm">
+                <p className="font-heading text-base font-semibold tracking-tight">
+                  {item.nome_padronizado || '-'}
                 </p>
                 <p
                   className={
                     item.imagem_aprovada
-                      ? 'text-emerald-700'
+                      ? 'text-xs font-medium text-emerald-700'
                       : !item.imagem_referencia_url
-                        ? 'text-muted-foreground'
-                        : 'text-amber-700'
+                        ? 'text-xs text-muted-foreground'
+                        : 'text-xs font-medium text-amber-700'
                   }
                 >
                   {imageStatusLabel(item)}
@@ -129,7 +131,7 @@ export function AiPreparationPanel({
                   <p className="text-muted-foreground">{item.ia_resumo}</p>
                 ) : null}
                 {item.ia_alertas && item.ia_alertas.length > 0 ? (
-                  <ul className="list-inside list-disc text-amber-700">
+                  <ul className="list-inside list-disc space-y-0.5 text-amber-700/90">
                     {item.ia_alertas.map((alerta, index) => (
                       <li key={index}>{alerta}</li>
                     ))}
@@ -139,7 +141,7 @@ export function AiPreparationPanel({
             </div>
 
             {canEdit ? (
-              <div className="mt-3">
+              <div className="mt-3 border-t border-foreground/8 pt-3">
                 <ItemImageActions item={item} />
               </div>
             ) : null}

@@ -89,13 +89,7 @@ export function ItemImageActions({ item }: { item: PedidoCompraItem }) {
   return (
     <div className="flex flex-wrap gap-2">
       {!item.imagem_aprovada ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleApprove}
-          disabled={isPending}
-        >
+        <Button type="button" size="sm" onClick={handleApprove} disabled={isPending}>
           Aprovar imagem
         </Button>
       ) : null}
