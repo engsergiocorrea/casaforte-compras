@@ -1,4 +1,5 @@
 import { searchImageWithGoogle } from '@/lib/images/providers/google-image-search'
+import { searchImageWithBrave } from '@/lib/images/providers/brave-image-search'
 
 type SearchMaterialReferenceImageInput = {
   termo: string
@@ -6,6 +7,8 @@ type SearchMaterialReferenceImageInput = {
 
 type SearchMaterialReferenceImageResult = {
   imageUrl: string
+  sourceUrl?: string
+  title?: string
 } | null
 
 // Busca de imagem de referência por provider externo. A imagem nunca é
@@ -18,6 +21,9 @@ export async function searchMaterialReferenceImage({
 }: SearchMaterialReferenceImageInput): Promise<SearchMaterialReferenceImageResult> {
   const provider = process.env.IMAGE_SEARCH_PROVIDER?.trim().toLowerCase()
 
+  console.warn('[ImageSearch] provider:', provider || '(não configurado)')
+  console.warn('[ImageSearch] termo:', termo)
+
   if (!provider) {
     console.warn('[ImageSearch] Provider de busca de imagem não configurado.')
     return null
@@ -28,6 +34,10 @@ export async function searchMaterialReferenceImage({
   }
 
   try {
+    if (provider === 'brave') {
+      return await searchImageWithBrave(termo)
+    }
+
     if (provider === 'google') {
       return await searchImageWithGoogle(termo)
     }
