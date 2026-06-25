@@ -1,6 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { FALLBACK_ALERT_MESSAGE } from '@/lib/ai/constants'
 import type { PedidoCompraItem } from '@/types/database'
+
+function usedFallback(item: PedidoCompraItem) {
+  return item.ia_alertas?.includes(FALLBACK_ALERT_MESSAGE) ?? false
+}
 
 function ItemStatus({ item }: { item: PedidoCompraItem }) {
   if (item.precisa_revisao) {
@@ -45,6 +50,8 @@ export function AiPreparationPanel({
 }) {
   if (!preparadoEm) return null
 
+  const algumFallback = itens.some(usedFallback)
+
   return (
     <Card>
       <CardHeader>
@@ -55,6 +62,13 @@ export function AiPreparationPanel({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {algumFallback ? (
+          <p className="rounded-md bg-amber-50 p-3 text-sm font-medium text-amber-800 border border-amber-200">
+            A IA configurada falhou ou não está disponível. O sistema usou preparação básica de
+            segurança.
+          </p>
+        ) : null}
+
         {itens.map((item) => (
           <div key={item.id} className="rounded-lg border p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
