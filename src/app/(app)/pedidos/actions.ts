@@ -15,6 +15,7 @@ import {
   canStartReview,
 } from '@/lib/permissions/pedido'
 import { devolverSchema, pedidoHeaderSchema, pedidoItemSchema } from '@/lib/validations/pedido'
+import { uploadMaterialImage } from '@/lib/catalogo/upload-material-image'
 import type { ActionResult, FormActionState } from '@/lib/action-result'
 import type { PedidoCompra } from '@/types/database'
 
@@ -343,6 +344,80 @@ export async function deletePedidoItem(pedidoId: string, itemId: string): Promis
 
   if (error) {
     return { success: false, error: error.message }
+  }
+
+  revalidatePath(`/pedidos/${pedidoId}`)
+  return { success: true }
+}
+
+export async function uploadItemImage(
+  pedidoId: string,
+  itemId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  let profile
+  try {
+    profile = await requireProfile()
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+
+  const supabase = await createServerSupabaseClient()
+  let pedido: PedidoCompra
+  try {
+    pedido = await fetchPedido(supabase, pedidoId)
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+
+  if (!canEditPedido(profile, pedido)) {
+    return { success: false, error: 'Não é possível alterar imagens deste pedido agora.' }
+  }
+
+  const { data: item, error: itemError } = await supabase
+    .from('pedido_compra_itens')
+    .select('*')
+    .eq('id', itemId)
+    .eq('pedido_compra_id', pedidoId)
+    .single()
+
+  if (itemError || !item) {
+    return { success: false, error: 'Item não encontrado.' }
+  }
+
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: 'Selecione um arquivo de imagem.' }
+  }
+
+  const aprovado = formData.get('aprovado') === 'on'
+
+  let materialImage
+  try {
+    materialImage = await uploadMaterialImage({
+      file,
+      materialCatalogoId: item.material_catalogo_id,
+      categoriaId: item.categoria_id,
+      nomeMaterial: item.nome_padronizado || item.nome_material,
+      aprovado,
+      createdBy: profile.id,
+    })
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+
+  const { error: updateError } = await supabase
+    .from('pedido_compra_itens')
+    .update({
+      imagem_referencia_url: materialImage.image_url,
+      imagem_origem: 'upload_manual',
+      imagem_aprovada: aprovado,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', itemId)
+
+  if (updateError) {
+    return { success: false, error: updateError.message }
   }
 
   revalidatePath(`/pedidos/${pedidoId}`)

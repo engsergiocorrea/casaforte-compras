@@ -1,7 +1,9 @@
 import { findApprovedMaterialImage } from '@/lib/catalogo/find-material-image'
+import { searchMaterialReferenceImage } from '@/lib/ai/image-search'
 
 type ResolveImageInput = {
   materialCatalogoId: string
+  termosBusca: string[]
 }
 
 type ResolveImageResult = {
@@ -11,11 +13,13 @@ type ResolveImageResult = {
   precisaRevisao: boolean
 }
 
-// Nunca inventa imagem: só aplica uma imagem já aprovada no catálogo interno.
-// Quando não há imagem aprovada, retorna null e sinaliza precisa_revisao,
-// deixando a curadoria manual decidir depois (Etapa de catálogo/imagens).
+// Ordem de resolução: 1) imagem já aprovada no catálogo interno (reuso
+// automático); 2) busca de imagem de referência via provider externo, se
+// configurado. Nunca gera/inventa imagem artificial de produto — quando
+// nenhuma das duas fontes encontra algo, retorna null e sinaliza revisão.
 export async function resolveMaterialImage({
   materialCatalogoId,
+  termosBusca,
 }: ResolveImageInput): Promise<ResolveImageResult> {
   const existingImage = await findApprovedMaterialImage(materialCatalogoId)
 
@@ -25,6 +29,17 @@ export async function resolveMaterialImage({
       origem: 'catalogo_interno',
       aprovada: true,
       precisaRevisao: false,
+    }
+  }
+
+  const searchResult = await searchMaterialReferenceImage({ termos: termosBusca })
+
+  if (searchResult) {
+    return {
+      imageUrl: searchResult.imageUrl,
+      origem: 'referencia_web',
+      aprovada: false,
+      precisaRevisao: true,
     }
   }
 

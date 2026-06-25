@@ -123,7 +123,12 @@ export default async function PedidoDetailPage({
         canEdit={canEdit}
       />
 
-      <AiPreparationPanel itens={itensTyped} preparadoEm={pedidoTyped.ia_preparado_em} />
+      <AiPreparationPanel
+        pedidoId={id}
+        itens={itensTyped}
+        preparadoEm={pedidoTyped.ia_preparado_em}
+        canEdit={canEdit}
+      />
 
       <PedidoHistory
         entries={

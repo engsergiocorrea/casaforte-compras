@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { isFallbackAlert } from '@/lib/ai/constants'
+import { UploadItemImageDialog } from '@/components/pedidos/upload-item-image-dialog'
 import type { PedidoCompraItem } from '@/types/database'
 
 function usedFallback(item: PedidoCompraItem) {
@@ -11,7 +13,7 @@ function ItemStatus({ item }: { item: PedidoCompraItem }) {
   if (item.precisa_revisao) {
     return (
       <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-        Precisa revisão
+        Revisar
       </Badge>
     )
   }
@@ -41,12 +43,26 @@ function ConfidenceBadge({ confianca }: { confianca: number | null }) {
   )
 }
 
+function imageStatusLabel(item: PedidoCompraItem) {
+  if (!item.imagem_referencia_url) {
+    return 'Sem imagem cadastrada. Cadastre uma imagem no catálogo ou configure busca de imagem.'
+  }
+  if (item.imagem_aprovada) {
+    return 'Imagem aprovada'
+  }
+  return 'Imagem de referência — revisar'
+}
+
 export function AiPreparationPanel({
+  pedidoId,
   itens,
   preparadoEm,
+  canEdit,
 }: {
+  pedidoId: string
   itens: PedidoCompraItem[]
   preparadoEm: string | null
+  canEdit: boolean
 }) {
   if (!preparadoEm) return null
 
@@ -58,7 +74,7 @@ export function AiPreparationPanel({
         <CardTitle className="text-base">Preparação por IA</CardTitle>
         <p className="text-sm text-muted-foreground">
           Preparado em {new Date(preparadoEm).toLocaleString('pt-BR')}. Revise os itens marcados
-          como &quot;Precisa revisão&quot; antes de seguir com o pedido.
+          como &quot;Revisar&quot; antes de seguir com o pedido.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -83,23 +99,47 @@ export function AiPreparationPanel({
             </div>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-[80px_1fr]">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-xs text-muted-foreground">
-                {item.imagem_referencia_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.imagem_referencia_url}
-                    alt={item.nome_padronizado || item.nome_material}
-                    className="h-full w-full object-contain"
+              <div className="space-y-2">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-xs text-muted-foreground">
+                  {item.imagem_referencia_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imagem_referencia_url}
+                      alt={item.nome_padronizado || item.nome_material}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="px-1">Sem imagem</span>
+                  )}
+                </div>
+                {canEdit ? (
+                  <UploadItemImageDialog
+                    pedidoId={pedidoId}
+                    itemId={item.id}
+                    trigger={
+                      <Button type="button" variant="outline" size="sm">
+                        {item.imagem_referencia_url ? 'Enviar foto' : 'Adicionar imagem'}
+                      </Button>
+                    }
                   />
-                ) : (
-                  <span className="px-1">Sem imagem aprovada</span>
-                )}
+                ) : null}
               </div>
 
               <div className="space-y-1 text-sm">
                 <p>
                   <span className="text-muted-foreground">Nome padronizado: </span>
                   <span className="font-medium">{item.nome_padronizado || '-'}</span>
+                </p>
+                <p
+                  className={
+                    item.imagem_aprovada
+                      ? 'text-emerald-700'
+                      : !item.imagem_referencia_url
+                        ? 'text-muted-foreground'
+                        : 'text-amber-700'
+                  }
+                >
+                  {imageStatusLabel(item)}
                 </p>
                 {item.ia_resumo ? (
                   <p className="text-muted-foreground">{item.ia_resumo}</p>

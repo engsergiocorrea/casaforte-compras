@@ -54,7 +54,10 @@ export async function prepareOrderWithAI(
     })
 
     const material = await findOrCreateMaterialFromAI(enrichment)
-    const image = await resolveMaterialImage({ materialCatalogoId: material.id })
+    const image = await resolveMaterialImage({
+      materialCatalogoId: material.id,
+      termosBusca: enrichment.termos_busca_imagem,
+    })
 
     const precisaRevisao =
       enrichment.confianca < 0.7 || enrichment.alertas.length > 0 || image.precisaRevisao
