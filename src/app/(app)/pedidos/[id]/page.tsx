@@ -4,8 +4,11 @@ import { PedidoItemsTable } from '@/components/pedidos/pedido-items-table'
 import { PedidoActionsPanel } from '@/components/pedidos/pedido-actions-panel'
 import { AiPreparationPanel } from '@/components/pedidos/ai-preparation-panel'
 import { PedidoHistory } from '@/components/pedidos/pedido-history'
+import { EnviarWhatsappDialog } from '@/components/pedidos/enviar-whatsapp-dialog'
+import { WhatsappHistory } from '@/components/pedidos/whatsapp-history'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-current-user'
+import { canSendWhatsapp } from '@/lib/permissions/can'
 import {
   canDecideApproval,
   canEditPedido,
@@ -20,11 +23,13 @@ import type {
   AprovacaoPedido,
   CategoriaMaterial,
   Engenheiro,
+  Fornecedor,
   MaterialCatalogo,
   Obra,
   PedidoCompra,
   PedidoCompraItem,
   Profile,
+  WhatsappEnvio,
 } from '@/types/database'
 
 export default async function PedidoDetailPage({
@@ -60,6 +65,8 @@ export default async function PedidoDetailPage({
     { data: engenheiros },
     { data: categorias },
     { data: materiais },
+    { data: fornecedores },
+    { data: whatsappEnvios },
   ] = await Promise.all([
     supabase.from('obras').select('*').eq('id', pedido.obra_id).maybeSingle(),
     pedido.solicitante_id
@@ -82,12 +89,22 @@ export default async function PedidoDetailPage({
     supabase.from('engenheiros').select('*').eq('ativo', true).order('nome'),
     supabase.from('categorias_materiais').select('*').eq('ativo', true).order('nome'),
     supabase.from('materiais_catalogo').select('*').eq('ativo', true).order('nome_padronizado'),
+    supabase.from('fornecedores').select('*').eq('status', 'ativo').order('nome_fantasia'),
+    supabase
+      .from('whatsapp_envios')
+      .select(
+        'id, telefone, status, error_message, enviado_em, created_at, fornecedor:fornecedores(nome_fantasia)'
+      )
+      .eq('pedido_compra_id', id)
+      .order('created_at', { ascending: false }),
   ])
 
   const pedidoTyped = pedido as PedidoCompra
   const canEdit = canEditPedido(profile, pedidoTyped)
   const itensTyped = (itens as PedidoCompraItem[]) ?? []
   const itensComRevisao = itensTyped.filter((item) => item.precisa_revisao).length
+  const fornecedoresTyped = (fornecedores as Fornecedor[]) ?? []
+  const podeEnviarWhatsapp = canSendWhatsapp(profile?.role) && !!pedidoTyped.pdf_url
 
   return (
     <div className="space-y-6">
@@ -115,6 +132,10 @@ export default async function PedidoDetailPage({
         itensComRevisao={itensComRevisao}
       />
 
+      {podeEnviarWhatsapp ? (
+        <EnviarWhatsappDialog pedidoId={id} fornecedores={fornecedoresTyped} />
+      ) : null}
+
       <PedidoItemsTable
         pedidoId={id}
         itens={itensTyped}
@@ -134,6 +155,16 @@ export default async function PedidoDetailPage({
           (historico as unknown as Array<
             Pick<AprovacaoPedido, 'id' | 'acao' | 'comentario' | 'created_at'> & {
               user: { nome: string } | null
+            }
+          >) ?? []
+        }
+      />
+
+      <WhatsappHistory
+        entries={
+          (whatsappEnvios as unknown as Array<
+            Pick<WhatsappEnvio, 'id' | 'telefone' | 'status' | 'error_message' | 'enviado_em' | 'created_at'> & {
+              fornecedor: { nome_fantasia: string } | null
             }
           >) ?? []
         }
