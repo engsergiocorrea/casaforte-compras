@@ -170,3 +170,57 @@ export type WhatsappEnvio = {
   enviado_em: string | null
   created_at: string
 }
+
+export type ObraEngenheiro = {
+  id: string
+  obra_id: string
+  engenheiro_id: string
+  created_at: string
+}
+
+export type AprovacaoAcao =
+  | 'criado'
+  | 'enviado_revisao'
+  | 'revisado'
+  | 'enviado_aprovacao'
+  | 'aprovado'
+  | 'rejeitado'
+  | 'devolvido'
+  | 'enviado_whatsapp'
+  | 'cancelado'
+  | 'marcado_comprado'
+  | 'pdf_gerado'
+  | 'ia_preparado'
+
+export type AprovacaoPedido = {
+  id: string
+  pedido_compra_id: string
+  user_id: string | null
+  acao: AprovacaoAcao
+  comentario: string | null
+  created_at: string
+}
+
+export type RespostaFornecedor = {
+  id: string
+  pedido_compra_id: string
+  fornecedor_id: string
+  respondeu: boolean
+  valor_total: number | null
+  prazo_entrega: string | null
+  condicao_pagamento: string | null
+  observacoes: string | null
+  anexo_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ActivityLog = {
+  id: string
+  user_id: string | null
+  entity_type: string
+  entity_id: string | null
+  action: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
