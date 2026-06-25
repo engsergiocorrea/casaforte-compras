@@ -1,11 +1,17 @@
 import { Badge } from '@/components/ui/badge'
 import type { PedidoStatus } from '@/types/database'
 
+// Rótulos amigáveis exibidos na UI. O valor armazenado no banco para o
+// fluxo simplificado continua sendo 'pendente_aprovacao' (não houve
+// migration de enum); só o texto exibido mudou para "Aguardando aprovação".
+// Os status legados de revisão (pendente_revisao/em_revisao) só existem em
+// pedidos antigos e mantêm rótulo próprio apenas para não quebrar a
+// renderização — não são mais oferecidos no fluxo de pedidos novos.
 const STATUS_LABELS: Record<PedidoStatus, string> = {
   rascunho: 'Rascunho',
-  pendente_revisao: 'Pendente de revisão',
-  em_revisao: 'Em revisão',
-  pendente_aprovacao: 'Pendente de aprovação',
+  pendente_revisao: 'Pendente de revisão (legado)',
+  em_revisao: 'Em revisão (legado)',
+  pendente_aprovacao: 'Aguardando aprovação',
   aprovado: 'Aprovado',
   enviado: 'Enviado',
   respondido: 'Respondido',

@@ -37,9 +37,21 @@ export default async function PedidosPage({
     supabase.from('pedidos_compra').select('status'),
   ])
 
-  const counts: Record<string, number> = { todos: todosStatus?.length ?? 0 }
+  const LEGACY_STATUSES: PedidoStatus[] = [
+    'pendente_revisao',
+    'em_revisao',
+    'enviado',
+    'respondido',
+    'parcialmente_comprado',
+    'comprado',
+  ]
+
+  const counts: Record<string, number> = { todos: todosStatus?.length ?? 0, outros: 0 }
   for (const row of (todosStatus as { status: PedidoStatus }[]) ?? []) {
     counts[row.status] = (counts[row.status] ?? 0) + 1
+    if (LEGACY_STATUSES.includes(row.status)) {
+      counts.outros += 1
+    }
   }
 
   return (

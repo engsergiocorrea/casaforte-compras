@@ -14,9 +14,9 @@ import type { Obra } from '@/types/database'
 const STATUS_OPTIONS = [
   { value: 'todos', label: 'Todos os status' },
   { value: 'rascunho', label: 'Rascunho' },
-  { value: 'pendente_revisao', label: 'Pendente de revisão' },
-  { value: 'em_revisao', label: 'Em revisão' },
-  { value: 'pendente_aprovacao', label: 'Pendente de aprovação' },
+  { value: 'pendente_revisao', label: 'Pendente de revisão (legado)' },
+  { value: 'em_revisao', label: 'Em revisão (legado)' },
+  { value: 'pendente_aprovacao', label: 'Aguardando aprovação' },
   { value: 'aprovado', label: 'Aprovado' },
   { value: 'devolvido', label: 'Devolvido' },
   { value: 'cancelado', label: 'Cancelado' },

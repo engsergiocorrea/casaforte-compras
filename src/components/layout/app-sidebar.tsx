@@ -12,6 +12,7 @@ import {
   BookImage,
   BarChart3,
   Settings,
+  Users,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -25,6 +26,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
+import type { ProfileRole } from '@/types/database'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,8 +40,17 @@ const navItems = [
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
-export function AppSidebar() {
+// "Pessoas e Acessos" só é visível para quem pode cadastrar pessoas e
+// gerenciar permissões: admin e diretoria.
+function canManagePeople(role: ProfileRole | null | undefined) {
+  return role === 'admin' || role === 'diretoria'
+}
+
+export function AppSidebar({ role }: { role?: ProfileRole | null }) {
   const pathname = usePathname()
+  const items = canManagePeople(role)
+    ? [...navItems, { href: '/pessoas', label: 'Pessoas e Acessos', icon: Users }]
+    : navItems
 
   return (
     <Sidebar>
@@ -54,7 +65,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-sidebar-foreground/50">Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {navItems.map((item) => {
+              {items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
                 return (
                   <SidebarMenuItem key={item.href}>

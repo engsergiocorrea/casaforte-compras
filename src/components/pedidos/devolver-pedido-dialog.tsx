@@ -53,7 +53,8 @@ export function DevolverPedidoDialog({ pedidoId }: { pedidoId: string }) {
         <DialogHeader>
           <DialogTitle>Devolver pedido</DialogTitle>
           <DialogDescription>
-            O solicitante poderá ajustar o pedido e enviá-lo novamente para revisão.
+            O solicitante poderá ajustar o pedido e enviá-lo novamente para aprovação. Uma
+            mensagem de WhatsApp com o motivo será enviada ao engenheiro responsável.
           </DialogDescription>
         </DialogHeader>
 

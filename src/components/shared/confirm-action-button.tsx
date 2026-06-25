@@ -24,6 +24,7 @@ export function ConfirmActionButton({
   action,
   variant = 'outline',
   successMessage,
+  disabled = false,
 }: {
   label: string
   title: string
@@ -31,6 +32,7 @@ export function ConfirmActionButton({
   action: () => Promise<ActionResult>
   variant?: 'outline' | 'destructive'
   successMessage: string
+  disabled?: boolean
 }) {
   const [isPending, startTransition] = useTransition()
 
@@ -48,7 +50,7 @@ export function ConfirmActionButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        render={<Button variant={variant} size="sm" disabled={isPending} />}
+        render={<Button variant={variant} size="sm" disabled={isPending || disabled} />}
       >
         {label}
       </AlertDialogTrigger>

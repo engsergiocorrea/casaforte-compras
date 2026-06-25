@@ -1,8 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { DevolverPedidoDialog } from '@/components/pedidos/devolver-pedido-dialog'
 import { PrepararIaButton } from '@/components/pedidos/preparar-ia-button'
@@ -10,16 +19,13 @@ import { GerarPdfButton } from '@/components/pedidos/gerar-pdf-button'
 import {
   aprovarPedido,
   cancelarPedido,
-  enviarParaAprovacao,
-  enviarParaRevisao,
-  iniciarRevisao,
+  enviarDiretoParaAprovacao,
 } from '@/app/(app)/pedidos/actions'
+import type { Fornecedor } from '@/types/database'
 
 export function PedidoActionsPanel({
   pedidoId,
-  canSendToReview,
-  canStartReview,
-  canSendToApproval,
+  canSendDirectToApproval,
   canDecideApproval,
   canCancel,
   canPrepareWithIA,
@@ -27,11 +33,11 @@ export function PedidoActionsPanel({
   hasItens,
   pdfUrl,
   itensComRevisao,
+  fornecedores,
+  fornecedorIdAtual,
 }: {
   pedidoId: string
-  canSendToReview: boolean
-  canStartReview: boolean
-  canSendToApproval: boolean
+  canSendDirectToApproval: boolean
   canDecideApproval: boolean
   canCancel: boolean
   canPrepareWithIA: boolean
@@ -39,11 +45,16 @@ export function PedidoActionsPanel({
   hasItens: boolean
   pdfUrl: string | null
   itensComRevisao: number
+  fornecedores: Fornecedor[]
+  fornecedorIdAtual: string | null
 }) {
+  const [fornecedorId, setFornecedorId] = useState<string>(fornecedorIdAtual ?? '')
+
+  const fornecedorSelecionado = fornecedores.find((f) => f.id === fornecedorId)
+  const fornecedorValido = !!fornecedorSelecionado?.telefone_whatsapp
+
   const hasActions =
-    canSendToReview ||
-    canStartReview ||
-    canSendToApproval ||
+    canSendDirectToApproval ||
     canDecideApproval ||
     canCancel ||
     canPrepareWithIA ||
@@ -91,47 +102,14 @@ export function PedidoActionsPanel({
             </Button>
           ) : null}
 
-          {canSendToReview ? (
-            <ConfirmActionButton
-              label="Enviar para revisão"
-              title="Enviar pedido para revisão"
-              description="O pedido será enviado para a equipe de compras revisar os itens."
-              successMessage="Pedido enviado para revisão."
-              action={() => enviarParaRevisao(pedidoId)}
-            />
-          ) : null}
-
-          {canStartReview ? (
-            <ConfirmActionButton
-              label="Iniciar revisão"
-              title="Iniciar revisão do pedido"
-              description="O pedido passará para 'em revisão' enquanto você confere os itens."
-              successMessage="Revisão iniciada."
-              action={() => iniciarRevisao(pedidoId)}
-            />
-          ) : null}
-
-          {canSendToApproval ? (
+          {canSendDirectToApproval ? (
             <ConfirmActionButton
               label="Enviar para aprovação"
               title="Enviar pedido para aprovação"
-              description="O pedido será enviado para aprovação da diretoria."
+              description="O pedido será enviado para aprovação da diretoria (Aguardando aprovação)."
               successMessage="Pedido enviado para aprovação."
-              action={() => enviarParaAprovacao(pedidoId)}
+              action={() => enviarDiretoParaAprovacao(pedidoId)}
             />
-          ) : null}
-
-          {canDecideApproval ? (
-            <>
-              <ConfirmActionButton
-                label="Aprovar"
-                title="Aprovar pedido"
-                description="O pedido será aprovado e não poderá mais ser editado livremente."
-                successMessage="Pedido aprovado."
-                action={() => aprovarPedido(pedidoId)}
-              />
-              <DevolverPedidoDialog pedidoId={pedidoId} />
-            </>
           ) : null}
 
           {canCancel ? (
@@ -145,6 +123,45 @@ export function PedidoActionsPanel({
             />
           ) : null}
         </div>
+
+        {canDecideApproval ? (
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="space-y-2">
+              <Label htmlFor="fornecedor-aprovacao">Fornecedor para envio do pedido</Label>
+              <Select value={fornecedorId} onValueChange={(value) => setFornecedorId(value ?? '')}>
+                <SelectTrigger id="fornecedor-aprovacao" className="w-full sm:w-80">
+                  <SelectValue placeholder="Selecione um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fornecedores.map((fornecedor) => (
+                    <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                      {fornecedor.nome_fantasia}
+                      {fornecedor.telefone_whatsapp ? ` · ${fornecedor.telefone_whatsapp}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fornecedorSelecionado && !fornecedorValido ? (
+                <p className="text-sm text-destructive">
+                  Este fornecedor não possui telefone de WhatsApp cadastrado. Selecione outro para
+                  poder aprovar.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <ConfirmActionButton
+                label="Aprovar pedido"
+                title="Aprovar pedido"
+                description="O pedido será aprovado, o documento será gerado (se ainda não existir) e enviado ao fornecedor selecionado por WhatsApp."
+                successMessage="Pedido aprovado e enviado ao fornecedor."
+                disabled={!fornecedorId || !fornecedorValido}
+                action={() => aprovarPedido(pedidoId, fornecedorId)}
+              />
+              <DevolverPedidoDialog pedidoId={pedidoId} />
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )

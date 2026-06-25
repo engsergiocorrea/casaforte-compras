@@ -10,14 +10,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-current-user'
 import { canSendWhatsapp } from '@/lib/permissions/can'
 import {
-  canDecideApproval,
+  canDecideApprovalAsync,
   canEditPedido,
   canCancelPedido,
   canGeneratePdf,
   canPrepareWithIA,
-  canSendToApproval,
-  canSendToReview,
-  canStartReview,
+  canSendDirectToApproval,
 } from '@/lib/permissions/pedido'
 import type {
   AprovacaoPedido,
@@ -105,6 +103,7 @@ export default async function PedidoDetailPage({
   const itensComRevisao = itensTyped.filter((item) => item.precisa_revisao).length
   const fornecedoresTyped = (fornecedores as Fornecedor[]) ?? []
   const podeEnviarWhatsapp = canSendWhatsapp(profile?.role) && !!pedidoTyped.pdf_url
+  const podeDecidirAprovacao = await canDecideApprovalAsync(supabase, profile, pedidoTyped)
 
   return (
     <div className="space-y-6">
@@ -120,16 +119,16 @@ export default async function PedidoDetailPage({
 
       <PedidoActionsPanel
         pedidoId={id}
-        canSendToReview={canSendToReview(profile, pedidoTyped)}
-        canStartReview={canStartReview(profile, pedidoTyped)}
-        canSendToApproval={canSendToApproval(profile, pedidoTyped)}
-        canDecideApproval={canDecideApproval(profile, pedidoTyped)}
+        canSendDirectToApproval={canSendDirectToApproval(profile, pedidoTyped)}
+        canDecideApproval={podeDecidirAprovacao}
         canCancel={canCancelPedido(profile, pedidoTyped)}
         canPrepareWithIA={canPrepareWithIA(profile, pedidoTyped)}
         canGeneratePdf={canGeneratePdf(profile, pedidoTyped)}
         hasItens={itensTyped.length > 0}
         pdfUrl={pedidoTyped.pdf_url}
         itensComRevisao={itensComRevisao}
+        fornecedores={fornecedoresTyped}
+        fornecedorIdAtual={pedidoTyped.fornecedor_id}
       />
 
       {podeEnviarWhatsapp ? (

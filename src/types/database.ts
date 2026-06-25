@@ -1,5 +1,16 @@
 export type ProfileRole = 'admin' | 'diretoria' | 'compras' | 'engenheiro' | 'visualizador'
 
+export type PerfilGeral =
+  | 'diretor_geral'
+  | 'diretor_financeiro'
+  | 'financeiro'
+  | 'engenheiro'
+  | 'obras'
+  | 'compras'
+  | 'rdo'
+  | 'tabelas'
+  | 'administrador'
+
 export type Profile = {
   id: string
   user_id: string
@@ -8,6 +19,9 @@ export type Profile = {
   telefone: string | null
   role: ProfileRole
   ativo: boolean
+  cargo: string | null
+  observacoes: string | null
+  perfis_gerais: PerfilGeral[]
   created_at: string
   updated_at: string
 }
@@ -128,6 +142,7 @@ export type PedidoCompra = {
   aprovado_por: string | null
   aprovado_em: string | null
   ia_preparado_em: string | null
+  fornecedor_id: string | null
   created_at: string
   updated_at: string
 }
@@ -223,4 +238,14 @@ export type ActivityLog = {
   action: string
   metadata: Record<string, unknown>
   created_at: string
+}
+
+export type UserPermission = {
+  id: string
+  profile_id: string
+  module: string
+  permission: string
+  enabled: boolean
+  created_at: string
+  updated_at: string
 }
