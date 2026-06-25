@@ -1,7 +1,7 @@
-create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
 create table public.profiles (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade unique not null,
   nome text not null,
   email text not null,
@@ -17,7 +17,7 @@ create table public.profiles (
 );
 
 create table public.obras (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   nome text not null,
   endereco text,
   cidade text,
@@ -36,7 +36,7 @@ create table public.obras (
 );
 
 create table public.engenheiros (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.profiles(id) on delete set null,
   nome text not null,
   email text,
@@ -50,7 +50,7 @@ create table public.engenheiros (
 );
 
 create table public.obra_engenheiros (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   obra_id uuid references public.obras(id) on delete cascade not null,
   engenheiro_id uuid references public.engenheiros(id) on delete cascade not null,
   created_at timestamptz not null default now(),
@@ -58,7 +58,7 @@ create table public.obra_engenheiros (
 );
 
 create table public.categorias_materiais (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   nome text not null unique,
   descricao text,
   ativo boolean not null default true,
@@ -66,7 +66,7 @@ create table public.categorias_materiais (
 );
 
 create table public.fornecedores (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   nome_fantasia text not null,
   razao_social text,
   cnpj text,
@@ -90,7 +90,7 @@ create table public.fornecedores (
 );
 
 create table public.materiais_catalogo (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   nome_padronizado text not null,
   nome_normalizado text not null,
   categoria_id uuid references public.categorias_materiais(id) on delete set null,
@@ -110,7 +110,7 @@ create index materiais_catalogo_nome_normalizado_idx
 on public.materiais_catalogo using gin (to_tsvector('portuguese', nome_normalizado));
 
 create table public.material_images (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   material_catalogo_id uuid references public.materiais_catalogo(id) on delete cascade,
   categoria_id uuid references public.categorias_materiais(id) on delete set null,
   nome_material text,
@@ -128,7 +128,7 @@ create table public.material_images (
 );
 
 create table public.pedidos_compra (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   numero bigint generated always as identity,
   obra_id uuid references public.obras(id) on delete restrict not null,
   solicitante_id uuid references public.profiles(id) on delete set null,
@@ -167,7 +167,7 @@ create table public.pedidos_compra (
 );
 
 create table public.pedido_compra_itens (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   pedido_compra_id uuid references public.pedidos_compra(id) on delete cascade not null,
   material_catalogo_id uuid references public.materiais_catalogo(id) on delete set null,
   categoria_id uuid references public.categorias_materiais(id) on delete set null,
@@ -203,7 +203,7 @@ create table public.pedido_compra_itens (
 );
 
 create table public.aprovacoes_pedido (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   pedido_compra_id uuid references public.pedidos_compra(id) on delete cascade not null,
   user_id uuid references public.profiles(id) on delete set null,
   acao text not null,
@@ -229,7 +229,7 @@ create table public.aprovacoes_pedido (
 );
 
 create table public.whatsapp_envios (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   pedido_compra_id uuid references public.pedidos_compra(id) on delete cascade not null,
   fornecedor_id uuid references public.fornecedores(id) on delete set null,
   telefone text not null,
@@ -246,7 +246,7 @@ create table public.whatsapp_envios (
 );
 
 create table public.respostas_fornecedores (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   pedido_compra_id uuid references public.pedidos_compra(id) on delete cascade not null,
   fornecedor_id uuid references public.fornecedores(id) on delete cascade not null,
   respondeu boolean not null default false,
@@ -260,7 +260,7 @@ create table public.respostas_fornecedores (
 );
 
 create table public.activity_logs (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete set null,
   entity_type text not null,
   entity_id uuid,
