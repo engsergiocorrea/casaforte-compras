@@ -61,3 +61,12 @@ Notas:
   instância configurada nela (padrão `casaforte`).
 - Nenhuma dessas chaves deve ser commitada no repositório nem aparecer em
   variáveis `NEXT_PUBLIC_*` além das já marcadas como públicas acima.
+
+## Geração de PDF (Puppeteer/Chromium no Railway)
+
+O documento do pedido é renderizado de HTML para PDF real (`application/pdf`)
+usando Chromium headless via `puppeteer` (`src/lib/pdf/render-pdf.ts`). O
+Chromium baixado pelo `npm install` do Puppeteer precisa de bibliotecas de
+sistema para rodar — o arquivo `nixpacks.toml` na raiz do projeto já declara
+essas dependências (`aptPkgs`) para o builder padrão do Railway (Nixpacks).
+Não é necessário nenhum passo manual além de manter esse arquivo no deploy.

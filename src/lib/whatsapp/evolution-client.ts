@@ -64,16 +64,10 @@ function normalizePhoneNumber(rawPhone: string) {
   return `55${digitsOnly}`
 }
 
-/**
- * Envia uma mensagem de texto via Evolution API.
- *
- * Trata erros de configuração ausente, falhas de rede e respostas HTTP não
- * OK, sempre retornando um resultado tipado (nunca lança exceção).
- */
-export async function sendWhatsappText(params: {
-  phone: string
-  message: string
-}): Promise<EvolutionSendTextResult> {
+async function postToEvolution(
+  endpointPath: string,
+  body: Record<string, unknown>
+): Promise<EvolutionSendTextResult> {
   const config = getEvolutionConfig()
 
   if (!config) {
@@ -84,13 +78,7 @@ export async function sendWhatsappText(params: {
     }
   }
 
-  const phone = normalizePhoneNumber(params.phone)
-
-  if (!phone) {
-    return { success: false, error: 'Telefone do fornecedor inválido.' }
-  }
-
-  const endpoint = `${config.apiUrl}/message/sendText/${config.instance}`
+  const endpoint = `${config.apiUrl}${endpointPath.replace('{instance}', config.instance)}`
 
   try {
     const response = await fetch(endpoint, {
@@ -99,41 +87,41 @@ export async function sendWhatsappText(params: {
         'Content-Type': 'application/json',
         apikey: config.apiKey,
       },
-      body: JSON.stringify({
-        number: phone,
-        text: params.message,
-      }),
+      body: JSON.stringify(body),
     })
 
-    let body: unknown = null
+    let responseBody: unknown = null
     try {
-      body = await response.json()
+      responseBody = await response.json()
     } catch {
-      // Resposta sem corpo JSON; seguimos com body = null.
+      // Resposta sem corpo JSON; seguimos com responseBody = null.
     }
 
     if (!response.ok) {
       const errorMessage =
-        (body && typeof body === 'object' && 'message' in body
-          ? String((body as { message?: unknown }).message)
+        (responseBody && typeof responseBody === 'object' && 'message' in responseBody
+          ? String((responseBody as { message?: unknown }).message)
           : null) ?? `Evolution API retornou status ${response.status}.`
 
-      return { success: false, error: errorMessage, raw: body }
+      return { success: false, error: errorMessage, raw: responseBody }
     }
 
     // Tentativas comuns de onde a Evolution API costuma colocar o id da
     // mensagem enviada. Ajustar conforme o formato real observado em testes.
     const messageId =
-      (body &&
-        typeof body === 'object' &&
-        ((body as Record<string, unknown>).key as Record<string, unknown> | undefined)?.id) ??
-      (body && typeof body === 'object' ? (body as Record<string, unknown>).messageId : null) ??
+      (responseBody &&
+        typeof responseBody === 'object' &&
+        ((responseBody as Record<string, unknown>).key as Record<string, unknown> | undefined)
+          ?.id) ??
+      (responseBody && typeof responseBody === 'object'
+        ? (responseBody as Record<string, unknown>).messageId
+        : null) ??
       null
 
     return {
       success: true,
       messageId: typeof messageId === 'string' ? messageId : null,
-      raw: body,
+      raw: responseBody,
     }
   } catch (error) {
     return {
@@ -144,4 +132,55 @@ export async function sendWhatsappText(params: {
           : 'Erro de conexão com a Evolution API.',
     }
   }
+}
+
+/**
+ * Envia uma mensagem de texto via Evolution API.
+ *
+ * Trata erros de configuração ausente, falhas de rede e respostas HTTP não
+ * OK, sempre retornando um resultado tipado (nunca lança exceção).
+ */
+export async function sendWhatsappText(params: {
+  phone: string
+  message: string
+}): Promise<EvolutionSendTextResult> {
+  const phone = normalizePhoneNumber(params.phone)
+
+  if (!phone) {
+    return { success: false, error: 'Telefone do fornecedor inválido.' }
+  }
+
+  return postToEvolution('/message/sendText/{instance}', {
+    number: phone,
+    text: params.message,
+  })
+}
+
+/**
+ * Envia um documento (ex.: PDF do pedido de compra) via Evolution API.
+ *
+ * `mediaUrl` deve ser uma URL pública/assinada acessível pela Evolution API
+ * (ex.: signed URL do Supabase Storage). Trata erros sempre retornando um
+ * resultado tipado (nunca lança exceção).
+ */
+export async function sendWhatsappDocument(params: {
+  phone: string
+  mediaUrl: string
+  fileName: string
+  caption?: string
+}): Promise<EvolutionSendTextResult> {
+  const phone = normalizePhoneNumber(params.phone)
+
+  if (!phone) {
+    return { success: false, error: 'Telefone do fornecedor inválido.' }
+  }
+
+  return postToEvolution('/message/sendMedia/{instance}', {
+    number: phone,
+    mediatype: 'document',
+    mimetype: 'application/pdf',
+    caption: params.caption ?? '',
+    media: params.mediaUrl,
+    fileName: params.fileName,
+  })
 }

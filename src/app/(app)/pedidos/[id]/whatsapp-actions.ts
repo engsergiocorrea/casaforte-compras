@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-current-user'
 import { canSendWhatsapp } from '@/lib/permissions/can'
 import { registrarAprovacao, registrarLog } from '@/lib/logs/activity'
-import { sendWhatsappText } from '@/lib/whatsapp/evolution-client'
+import { sendWhatsappDocument } from '@/lib/whatsapp/evolution-client'
 import type { ActionResult } from '@/lib/action-result'
 import type { Fornecedor, PedidoCompra } from '@/types/database'
 
@@ -17,19 +17,12 @@ async function requireProfile() {
   return profile
 }
 
-function montarMensagem(pedido: PedidoCompra, fornecedor: Fornecedor) {
-  const linhas = [
+function montarLegenda(pedido: PedidoCompra, fornecedor: Fornecedor) {
+  return [
     `Olá, ${fornecedor.nome_fantasia}!`,
     `Segue o pedido de compra #${pedido.numero} da Casa Forte Construtora.`,
-  ]
-
-  if (pedido.pdf_url) {
-    linhas.push(`Documento: ${pedido.pdf_url}`)
-  }
-
-  linhas.push('Por favor, confirme o recebimento e nos retorne com valores e prazo de entrega.')
-
-  return linhas.join('\n\n')
+    'Por favor, confirme o recebimento e nos retorne com valores e prazo de entrega.',
+  ].join('\n\n')
 }
 
 export async function enviarPedidoPorWhatsapp(
@@ -87,18 +80,21 @@ export async function enviarPedidoPorWhatsapp(
     }
   }
 
-  const mensagem = montarMensagem(pedido, fornecedor)
+  const legenda = montarLegenda(pedido, fornecedor)
+  const fileName = `pedido-compra-${pedido.numero}.pdf`
 
-  const resultado = await sendWhatsappText({
+  const resultado = await sendWhatsappDocument({
     phone: fornecedor.telefone_whatsapp,
-    message: mensagem,
+    mediaUrl: pedido.pdf_url,
+    fileName,
+    caption: legenda,
   })
 
   const { error: insertError } = await supabase.from('whatsapp_envios').insert({
     pedido_compra_id: pedidoId,
     fornecedor_id: fornecedorId,
     telefone: fornecedor.telefone_whatsapp,
-    mensagem,
+    mensagem: legenda,
     status: resultado.success ? 'sent' : 'failed',
     whatsapp_message_id: resultado.success ? resultado.messageId : null,
     error_message: resultado.success ? null : resultado.error,

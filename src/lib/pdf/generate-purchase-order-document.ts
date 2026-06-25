@@ -1,6 +1,7 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { prepareOrderWithAI } from '@/lib/ai/order-preparation'
 import { generatePurchaseOrderHtml } from '@/lib/pdf/purchase-order-html'
+import { renderHtmlToPdf } from '@/lib/pdf/render-pdf'
 import { registrarAprovacao, registrarLog } from '@/lib/logs/activity'
 import type {
   Engenheiro,
@@ -80,12 +81,16 @@ export async function generatePurchaseOrderDocument(pedidoId: string, geradoPor:
     itens: (itens as PedidoCompraItem[]) ?? [],
   })
 
-  const path = `pedidos/${pedidoId}/pedido-${pedidoFinal.numero}.html`
+  const pdf = await renderHtmlToPdf(html)
+
+  const path = `pedidos/${pedidoId}/pedido-${pedidoFinal.numero}.pdf`
+  const downloadFileName = `pedido-compra-${pedidoFinal.numero}.pdf`
+  const legacyHtmlPath = `pedidos/${pedidoId}/pedido-${pedidoFinal.numero}.html`
 
   const { error: uploadError } = await supabase.storage
     .from('purchase-orders')
-    .upload(path, html, {
-      contentType: 'text/html; charset=utf-8',
+    .upload(path, pdf, {
+      contentType: 'application/pdf',
       upsert: true,
     })
 
@@ -93,9 +98,13 @@ export async function generatePurchaseOrderDocument(pedidoId: string, geradoPor:
     throw new Error(`Erro ao salvar documento no Storage: ${uploadError.message}`)
   }
 
+  // Remove documento HTML antigo (versões anteriores salvavam .html); falha
+  // aqui não deve impedir a geração do PDF.
+  await supabase.storage.from('purchase-orders').remove([legacyHtmlPath]).catch(() => null)
+
   const { data: signed, error: signedError } = await supabase.storage
     .from('purchase-orders')
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS, { download: downloadFileName })
 
   if (signedError || !signed) {
     throw new Error(`Erro ao gerar link do documento: ${signedError?.message}`)
