@@ -1,8 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { isFallbackAlert } from '@/lib/ai/constants'
-import { UploadItemImageDialog } from '@/components/pedidos/upload-item-image-dialog'
+import { ItemImageActions } from '@/components/pedidos/item-image-actions'
 import type { PedidoCompraItem } from '@/types/database'
 
 function usedFallback(item: PedidoCompraItem) {
@@ -54,12 +53,10 @@ function imageStatusLabel(item: PedidoCompraItem) {
 }
 
 export function AiPreparationPanel({
-  pedidoId,
   itens,
   preparadoEm,
   canEdit,
 }: {
-  pedidoId: string
   itens: PedidoCompraItem[]
   preparadoEm: string | null
   canEdit: boolean
@@ -112,17 +109,7 @@ export function AiPreparationPanel({
                     <span className="px-1">Sem imagem</span>
                   )}
                 </div>
-                {canEdit ? (
-                  <UploadItemImageDialog
-                    pedidoId={pedidoId}
-                    itemId={item.id}
-                    trigger={
-                      <Button type="button" variant="outline" size="sm">
-                        {item.imagem_referencia_url ? 'Enviar foto' : 'Adicionar imagem'}
-                      </Button>
-                    }
-                  />
-                ) : null}
+                {canEdit ? <ItemImageActions item={item} /> : null}
               </div>
 
               <div className="space-y-1 text-sm">

@@ -44,11 +44,11 @@ function formatDate(value: string | null) {
 
 function renderItemImage(item: PedidoCompraItem) {
   if (!item.imagem_referencia_url) {
-    return '<div class="no-image">Sem imagem aprovada</div>'
+    return '<div class="no-image">Sem imagem cadastrada</div>'
   }
 
   const warning = !item.imagem_aprovada
-    ? '<div class="image-warning">Imagem de referência</div>'
+    ? '<div class="image-warning">Imagem de referência — revisar</div>'
     : ''
 
   return `

@@ -124,7 +124,6 @@ export default async function PedidoDetailPage({
       />
 
       <AiPreparationPanel
-        pedidoId={id}
         itens={itensTyped}
         preparadoEm={pedidoTyped.ia_preparado_em}
         canEdit={canEdit}

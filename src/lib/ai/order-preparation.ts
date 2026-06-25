@@ -56,6 +56,8 @@ export async function prepareOrderWithAI(
     const material = await findOrCreateMaterialFromAI(enrichment)
     const image = await resolveMaterialImage({
       materialCatalogoId: material.id,
+      categoriaId: material.categoria_id,
+      nomeMaterial: enrichment.nome_padronizado || item.nome_material,
       termosBusca: enrichment.termos_busca_imagem,
     })
 

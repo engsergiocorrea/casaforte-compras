@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -14,20 +15,20 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { uploadItemImage } from '@/app/(app)/pedidos/actions'
 
 export function UploadItemImageDialog({
-  pedidoId,
   itemId,
   trigger,
+  title = 'Adicionar imagem',
 }: {
-  pedidoId: string
   itemId: string
   trigger: React.ReactElement
+  title?: string
 }) {
   const [open, setOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,13 +36,22 @@ export function UploadItemImageDialog({
     setErrorMessage(null)
 
     startTransition(async () => {
-      const result = await uploadItemImage(pedidoId, itemId, formData)
+      try {
+        const response = await fetch(`/api/purchase-order-items/${itemId}/upload-image`, {
+          method: 'POST',
+          body: formData,
+        })
+        const result = await response.json()
 
-      if (result.success) {
-        toast.success('Imagem enviada.')
-        setOpen(false)
-      } else {
-        setErrorMessage(result.error ?? 'Erro ao enviar imagem.')
+        if (result.success) {
+          toast.success('Imagem enviada.')
+          setOpen(false)
+          router.refresh()
+        } else {
+          setErrorMessage(result.error ?? 'Erro ao enviar imagem.')
+        }
+      } catch {
+        setErrorMessage('Erro de conexão ao enviar imagem.')
       }
     })
   }
@@ -57,7 +67,7 @@ export function UploadItemImageDialog({
       <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar imagem</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             Envie uma foto de referência deste material. Ela ficará disponível no pedido e, se
             marcada como aprovada, poderá ser reutilizada automaticamente em pedidos futuros.
@@ -91,7 +101,12 @@ export function UploadItemImageDialog({
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending}>
