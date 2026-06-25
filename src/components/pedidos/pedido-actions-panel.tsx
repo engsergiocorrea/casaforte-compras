@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { DevolverPedidoDialog } from '@/components/pedidos/devolver-pedido-dialog'
+import { PrepararIaButton } from '@/components/pedidos/preparar-ia-button'
 import {
   aprovarPedido,
   cancelarPedido,
@@ -18,6 +19,7 @@ export function PedidoActionsPanel({
   canSendToApproval,
   canDecideApproval,
   canCancel,
+  canPrepareWithIA,
 }: {
   pedidoId: string
   canSendToReview: boolean
@@ -25,9 +27,15 @@ export function PedidoActionsPanel({
   canSendToApproval: boolean
   canDecideApproval: boolean
   canCancel: boolean
+  canPrepareWithIA: boolean
 }) {
   const hasActions =
-    canSendToReview || canStartReview || canSendToApproval || canDecideApproval || canCancel
+    canSendToReview ||
+    canStartReview ||
+    canSendToApproval ||
+    canDecideApproval ||
+    canCancel ||
+    canPrepareWithIA
 
   if (!hasActions) return null
 
@@ -37,6 +45,8 @@ export function PedidoActionsPanel({
         <CardTitle className="text-base">Ações</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
+        {canPrepareWithIA ? <PrepararIaButton pedidoId={pedidoId} /> : null}
+
         {canSendToReview ? (
           <ConfirmActionButton
             label="Enviar para revisão"

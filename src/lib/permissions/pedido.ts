@@ -41,3 +41,12 @@ export function canCancelPedido(profile: Profile | null, pedido: PedidoCompra) {
   if (!profile || !isStaff(profile.role)) return false
   return !['aprovado', 'cancelado', 'comprado'].includes(pedido.status)
 }
+
+// Preparar com IA é um passo prévio à geração do PDF: disponível para quem
+// pode editar o pedido (dono em rascunho/devolvido, ou staff em qualquer
+// status não finalizado), nunca depois de aprovado/cancelado.
+export function canPrepareWithIA(profile: Profile | null, pedido: PedidoCompra) {
+  if (!profile) return false
+  if (['aprovado', 'cancelado'].includes(pedido.status)) return false
+  return isStaff(profile.role) || isOwner(profile, pedido)
+}

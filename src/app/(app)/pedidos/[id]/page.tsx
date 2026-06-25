@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { PedidoHeaderCard } from '@/components/pedidos/pedido-header-card'
 import { PedidoItemsTable } from '@/components/pedidos/pedido-items-table'
 import { PedidoActionsPanel } from '@/components/pedidos/pedido-actions-panel'
+import { AiPreparationPanel } from '@/components/pedidos/ai-preparation-panel'
 import { PedidoHistory } from '@/components/pedidos/pedido-history'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-current-user'
@@ -9,6 +10,7 @@ import {
   canDecideApproval,
   canEditPedido,
   canCancelPedido,
+  canPrepareWithIA,
   canSendToApproval,
   canSendToReview,
   canStartReview,
@@ -103,6 +105,7 @@ export default async function PedidoDetailPage({
         canSendToApproval={canSendToApproval(profile, pedidoTyped)}
         canDecideApproval={canDecideApproval(profile, pedidoTyped)}
         canCancel={canCancelPedido(profile, pedidoTyped)}
+        canPrepareWithIA={canPrepareWithIA(profile, pedidoTyped)}
       />
 
       <PedidoItemsTable
@@ -111,6 +114,11 @@ export default async function PedidoDetailPage({
         categorias={(categorias as CategoriaMaterial[]) ?? []}
         materiais={(materiais as MaterialCatalogo[]) ?? []}
         canEdit={canEdit}
+      />
+
+      <AiPreparationPanel
+        itens={(itens as PedidoCompraItem[]) ?? []}
+        preparadoEm={pedidoTyped.ia_preparado_em}
       />
 
       <PedidoHistory
