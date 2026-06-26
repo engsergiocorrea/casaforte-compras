@@ -8,7 +8,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <AppSidebar role={profile?.role} />
+      <AppSidebar />
       <div className="flex min-h-screen w-full flex-col bg-background">
         <AppHeader profile={profile} />
         <main className="flex-1 p-4 md:p-6">{children}</main>

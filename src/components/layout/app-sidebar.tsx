@@ -7,12 +7,10 @@ import {
   ClipboardList,
   Building2,
   Truck,
-  HardHat,
   Tags,
   BookImage,
   BarChart3,
   Settings,
-  Users,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -26,31 +24,30 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
-import type { ProfileRole } from '@/types/database'
 
+// Transição para o Portal Casa Forte (cadastro central de pessoas/acessos):
+// os itens "Pessoas e Acessos" e "Engenheiros" foram retirados deste menu
+// porque o cadastro oficial de pessoas — incluindo quem tem cargo/perfil
+// "Engenheiro" — passa a viver no Portal (`/pessoas`), não aqui no Compras.
+// As rotas (`/pessoas`, `/engenheiros`), as tabelas (`profiles`,
+// `engenheiros`, `user_permissions`) e o código por trás continuam
+// existindo sem alteração — nada foi apagado, só deixou de aparecer no
+// menu para o usuário final. Pedidos antigos que referenciam um
+// `engenheiro_id` continuam funcionando normalmente.
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
   { href: '/obras', label: 'Obras', icon: Building2 },
   { href: '/fornecedores', label: 'Fornecedores', icon: Truck },
-  { href: '/engenheiros', label: 'Engenheiros', icon: HardHat },
   { href: '/categorias', label: 'Categorias', icon: Tags },
   { href: '/catalogo', label: 'Catálogo', icon: BookImage },
   { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
-// "Pessoas e Acessos" só é visível para quem pode cadastrar pessoas e
-// gerenciar permissões: admin e diretoria.
-function canManagePeople(role: ProfileRole | null | undefined) {
-  return role === 'admin' || role === 'diretoria'
-}
-
-export function AppSidebar({ role }: { role?: ProfileRole | null }) {
+export function AppSidebar() {
   const pathname = usePathname()
-  const items = canManagePeople(role)
-    ? [...navItems, { href: '/pessoas', label: 'Pessoas e Acessos', icon: Users }]
-    : navItems
+  const items = navItems
 
   return (
     <Sidebar>
