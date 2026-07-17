@@ -22,6 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from '@/components/ui/sidebar'
 import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
 
@@ -50,10 +51,10 @@ export function AppSidebar() {
   const items = navItems
 
   return (
-    <Sidebar>
-      <SidebarHeader className="gap-2 border-b border-sidebar-border px-4 py-5">
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="gap-2 border-b border-sidebar-border px-4 py-5 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
         <CasaForteLogo variant="sidebar" fallbackClassName="text-sidebar-foreground" />
-        <span className="text-xs font-medium tracking-wide text-sidebar-foreground/60 uppercase">
+        <span className="text-xs font-medium tracking-wide text-sidebar-foreground/60 uppercase group-data-[collapsible=icon]:hidden">
           Sistema de Compras
         </span>
       </SidebarHeader>
@@ -69,6 +70,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       render={<Link href={item.href} />}
                       isActive={isActive}
+                      tooltip={item.label}
                       className="gap-2.5 rounded-lg font-medium data-active:bg-sidebar-primary/15 data-active:text-sidebar-primary data-active:font-semibold"
                     >
                       <item.icon className="size-4" />
@@ -81,6 +83,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
   )
 }

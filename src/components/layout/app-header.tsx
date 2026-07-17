@@ -1,6 +1,7 @@
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { logout } from '@/app/login/actions'
 import type { Profile } from '@/types/database'
 
@@ -20,6 +21,7 @@ export function AppHeader({ profile }: { profile: Profile | null }) {
             <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
           </div>
         ) : null}
+        <ThemeToggle />
         <form action={logout}>
           <Button type="submit" variant="outline" size="sm">
             Sair
