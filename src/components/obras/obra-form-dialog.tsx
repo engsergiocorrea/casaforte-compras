@@ -25,7 +25,7 @@ import {
 import { createObra, updateObra } from '@/app/(app)/obras/actions'
 import { initialFormActionState } from '@/lib/action-result'
 import type { FormActionState } from '@/lib/action-result'
-import type { Obra } from '@/types/database'
+import type { Obra, SiengeEmpreendimento } from '@/types/database'
 
 const STATUS_OPTIONS = [
   { value: 'ativa', label: 'Ativa' },
@@ -36,11 +36,34 @@ const STATUS_OPTIONS = [
 
 export function ObraFormDialog({
   obra,
+  obras,
+  empreendimentosSienge,
   trigger,
 }: {
   obra?: Obra
+  obras: Obra[]
+  empreendimentosSienge: SiengeEmpreendimento[]
   trigger: React.ReactElement
 }) {
+  // A obra É o empreendimento do Sienge: obrigatório na criação; obra antiga sem
+  // vínculo pode ser vinculada uma vez (depois o banco não deixa trocar).
+  const vinculoFixo = obra?.sienge_enterprise_id ?? null
+  const usados = new Map(
+    obras.filter((o) => o.sienge_enterprise_id && o.id !== obra?.id).map((o) => [o.sienge_enterprise_id!, o.nome])
+  )
+  const [siengeId, setSiengeId] = useState<string>(vinculoFixo ? String(vinculoFixo) : '')
+  const [nome, setNome] = useState(obra?.nome ?? '')
+  const [cidade, setCidade] = useState(obra?.cidade ?? '')
+  const [estado, setEstado] = useState(obra?.estado ?? '')
+
+  function escolherSienge(value: string) {
+    setSiengeId(value)
+    const emp = empreendimentosSienge.find((e) => String(e.id) === value)
+    if (!emp || obra) return
+    setNome(emp.nome.charAt(0) + emp.nome.slice(1).toLowerCase())
+    if (emp.cidade) setCidade(emp.cidade)
+    if (emp.uf) setEstado(emp.uf)
+  }
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<FormActionState>(initialFormActionState)
   const [isPending, startTransition] = useTransition()
@@ -68,7 +91,13 @@ export function ObraFormDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
-        if (next) setState(initialFormActionState)
+        if (next) {
+          setState(initialFormActionState)
+          setSiengeId(vinculoFixo ? String(vinculoFixo) : '')
+          setNome(obra?.nome ?? '')
+          setCidade(obra?.cidade ?? '')
+          setEstado(obra?.estado ?? '')
+        }
       }}
     >
       <DialogTrigger render={trigger} />
@@ -83,9 +112,45 @@ export function ObraFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {obra ? <input type="hidden" name="id" value={obra.id} /> : null}
 
+          <input type="hidden" name="sienge_enterprise_id" value={vinculoFixo ? '' : siengeId} />
           <div className="space-y-2">
-            <Label htmlFor="nome">Nome da obra *</Label>
-            <Input id="nome" name="nome" required defaultValue={obra?.nome} />
+            <Label>Empreendimento no Sienge {obra ? '' : '*'}</Label>
+            {vinculoFixo ? (
+              <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+                ✓ {empreendimentosSienge.find((e) => e.id === vinculoFixo)?.nome ?? 'Empreendimento'}{' '}
+                <span className="text-muted-foreground">(Sienge #{vinculoFixo}) — vínculo fixo</span>
+              </p>
+            ) : (
+              <>
+                <Select value={siengeId} onValueChange={(value) => escolherSienge(value as string)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o empreendimento no Sienge" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {empreendimentosSienge.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)} disabled={usados.has(e.id)}>
+                        {e.nome}
+                        {e.cidade ? ` — ${e.cidade}${e.uf ? '/' + e.uf : ''}` : ''}
+                        {usados.has(e.id) ? ` · já é a obra "${usados.get(e.id)}"` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {obra
+                    ? 'Obra sem vínculo com o Sienge: vincule para usá-la em novos pedidos.'
+                    : 'A obra é o empreendimento do Sienge. Não está na lista? Cadastre no Sienge e atualize em Obras/RDO → “Atualizar do Sienge”.'}
+                </p>
+              </>
+            )}
+            {state.fieldErrors?.sienge_enterprise_id ? (
+              <p className="text-sm text-destructive">{state.fieldErrors.sienge_enterprise_id[0]}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nome">Nome de exibição *</Label>
+            <Input id="nome" name="nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
             {state.fieldErrors?.nome ? (
               <p className="text-sm text-destructive">{state.fieldErrors.nome[0]}</p>
             ) : null}
@@ -94,11 +159,11 @@ export function ObraFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cidade">Cidade</Label>
-              <Input id="cidade" name="cidade" defaultValue={obra?.cidade ?? ''} />
+              <Input id="cidade" name="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="estado">Estado</Label>
-              <Input id="estado" name="estado" maxLength={2} defaultValue={obra?.estado ?? ''} />
+              <Input id="estado" name="estado" maxLength={2} value={estado} onChange={(e) => setEstado(e.target.value)} />
             </div>
           </div>
 

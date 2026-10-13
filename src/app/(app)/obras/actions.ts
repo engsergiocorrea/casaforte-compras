@@ -11,6 +11,12 @@ function nullableField(value: string | undefined) {
   return value && value.length > 0 ? value : null
 }
 
+// Erros das travas do banco (casaforte-obras/sql/07_obras_sienge.sql) em linguagem de gente.
+function mensagemErroObra(error: { code?: string; message?: string }): string {
+  if (error.code === '23505') return 'Este empreendimento do Sienge já tem uma obra cadastrada.'
+  return error.message ?? 'Erro ao salvar a obra.'
+}
+
 async function assertCanManageObras() {
   const profile = await getCurrentUser()
 
@@ -32,6 +38,7 @@ export async function createObra(
   }
 
   const parsed = obraSchema.safeParse({
+    sienge_enterprise_id: formData.get('sienge_enterprise_id') ?? '',
     nome: formData.get('nome'),
     endereco: formData.get('endereco'),
     cidade: formData.get('cidade'),
@@ -53,8 +60,17 @@ export async function createObra(
 
   const supabase = await createServerSupabaseClient()
   const data = parsed.data
+  const siengeId = Number(data.sienge_enterprise_id)
+  if (!Number.isInteger(siengeId) || siengeId <= 0) {
+    return {
+      success: false,
+      error: 'Escolha o empreendimento no Sienge.',
+      fieldErrors: { sienge_enterprise_id: ['Obrigatório: a obra é o empreendimento do Sienge.'] },
+    }
+  }
 
   const { error } = await supabase.from('obras').insert({
+    sienge_enterprise_id: siengeId,
     nome: data.nome,
     endereco: nullableField(data.endereco),
     cidade: nullableField(data.cidade),
@@ -67,7 +83,7 @@ export async function createObra(
   })
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: mensagemErroObra(error) }
   }
 
   revalidatePath('/obras')
@@ -91,6 +107,7 @@ export async function updateObra(
   }
 
   const parsed = obraSchema.safeParse({
+    sienge_enterprise_id: formData.get('sienge_enterprise_id') ?? '',
     nome: formData.get('nome'),
     endereco: formData.get('endereco'),
     cidade: formData.get('cidade'),
@@ -113,9 +130,12 @@ export async function updateObra(
   const supabase = await createServerSupabaseClient()
   const data = parsed.data
 
+  const siengeId = Number(data.sienge_enterprise_id)
   const { error } = await supabase
     .from('obras')
     .update({
+      // Só vincula obra antiga sem vínculo; o banco impede trocar um vínculo existente.
+      ...(Number.isInteger(siengeId) && siengeId > 0 ? { sienge_enterprise_id: siengeId } : {}),
       nome: data.nome,
       endereco: nullableField(data.endereco),
       cidade: nullableField(data.cidade),
@@ -130,7 +150,7 @@ export async function updateObra(
     .eq('id', id)
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: mensagemErroObra(error) }
   }
 
   revalidatePath('/obras')

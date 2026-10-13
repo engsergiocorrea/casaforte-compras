@@ -37,8 +37,18 @@ export type Obra = {
   data_inicio: string | null
   previsao_termino: string | null
   observacoes: string | null
+  ativo: boolean | null
+  sienge_enterprise_id: number | null
   created_at: string
   updated_at: string
+}
+
+// Catálogo espelhado do Sienge (public.sienge_empreendimentos): a obra É o empreendimento.
+export type SiengeEmpreendimento = {
+  id: number
+  nome: string
+  cidade: string | null
+  uf: string | null
 }
 
 export type Engenheiro = {

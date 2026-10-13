@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const obraStatusValues = ['ativa', 'pausada', 'concluida', 'arquivada'] as const
 
 export const obraSchema = z.object({
+  sienge_enterprise_id: z.string().trim().optional().or(z.literal('')),
   nome: z.string().trim().min(2, 'Informe o nome da obra.'),
   endereco: z.string().trim().optional().or(z.literal('')),
   cidade: z.string().trim().optional().or(z.literal('')),

@@ -13,9 +13,14 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { ObraFormDialog } from '@/components/obras/obra-form-dialog'
 import { setObraStatus } from '@/app/(app)/obras/actions'
-import type { Obra } from '@/types/database'
+import type { Obra, SiengeEmpreendimento } from '@/types/database'
 
-export function ObrasTable({ obras, canManage }: { obras: Obra[]; canManage: boolean }) {
+export function ObrasTable({ obras, empreendimentosSienge, canManage }: {
+  obras: Obra[]
+  empreendimentosSienge: SiengeEmpreendimento[]
+  canManage: boolean
+}) {
+  const siengeNome = new Map(empreendimentosSienge.map((e) => [e.id, e.nome]))
   if (obras.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
@@ -30,6 +35,7 @@ export function ObrasTable({ obras, canManage }: { obras: Obra[]; canManage: boo
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
+            <TableHead>Sienge</TableHead>
             <TableHead>Cidade/UF</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Responsável técnico</TableHead>
@@ -41,6 +47,16 @@ export function ObrasTable({ obras, canManage }: { obras: Obra[]; canManage: boo
             <TableRow key={obra.id}>
               <TableCell className="font-medium">{obra.nome}</TableCell>
               <TableCell>
+                {obra.sienge_enterprise_id ? (
+                  <span className="text-sm">
+                    {siengeNome.get(obra.sienge_enterprise_id) ?? 'Empreendimento'}{' '}
+                    <span className="text-xs text-muted-foreground">#{obra.sienge_enterprise_id}</span>
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-700">Sem vínculo</span>
+                )}
+              </TableCell>
+              <TableCell>
                 {[obra.cidade, obra.estado].filter(Boolean).join(' / ') || '-'}
               </TableCell>
               <TableCell>
@@ -50,6 +66,8 @@ export function ObrasTable({ obras, canManage }: { obras: Obra[]; canManage: boo
               {canManage ? (
                 <TableCell className="flex justify-end gap-2">
                   <ObraFormDialog
+                    obras={obras}
+                    empreendimentosSienge={empreendimentosSienge}
                     obra={obra}
                     trigger={<Button variant="outline" size="sm">Editar</Button>}
                   />

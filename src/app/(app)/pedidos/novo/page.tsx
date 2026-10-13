@@ -15,7 +15,7 @@ export default async function NovoPedidoPage() {
   const supabase = await createServerSupabaseClient()
 
   const [{ data: obras }, { data: engenheiros }] = await Promise.all([
-    supabase.from('obras').select('*').eq('status', 'ativa').order('nome'),
+    supabase.from('obras').select('*').eq('ativo', true).not('sienge_enterprise_id', 'is', null).order('nome'),
     supabase.from('engenheiros').select('*').eq('ativo', true).order('nome'),
   ])
 

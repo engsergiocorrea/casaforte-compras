@@ -4,17 +4,19 @@ import { ObraFormDialog } from '@/components/obras/obra-form-dialog'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-current-user'
 import { canManageMasterData } from '@/lib/permissions/can'
-import type { Obra } from '@/types/database'
+import type { Obra, SiengeEmpreendimento } from '@/types/database'
 
 export default async function ObrasPage() {
   const supabase = await createServerSupabaseClient()
   const profile = await getCurrentUser()
   const canManage = canManageMasterData(profile?.role)
 
-  const { data: obras, error } = await supabase
-    .from('obras')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [{ data: obras, error }, { data: sienge }] = await Promise.all([
+    supabase.from('obras').select('*').order('created_at', { ascending: false }),
+    supabase.from('sienge_empreendimentos').select('id, nome, cidade, uf').order('nome'),
+  ])
+  const obrasTyped = (obras as Obra[]) ?? []
+  const empreendimentosSienge = (sienge as SiengeEmpreendimento[]) ?? []
 
   return (
     <div className="space-y-6">
@@ -24,7 +26,7 @@ export default async function ObrasPage() {
           <p className="text-muted-foreground">Obras da Casa Forte e seus responsáveis.</p>
         </div>
         {canManage ? (
-          <ObraFormDialog trigger={<Button>Nova obra</Button>} />
+          <ObraFormDialog obras={obrasTyped} empreendimentosSienge={empreendimentosSienge} trigger={<Button>Nova obra</Button>} />
         ) : null}
       </div>
 
@@ -33,7 +35,7 @@ export default async function ObrasPage() {
           Erro ao carregar obras: {error.message}
         </div>
       ) : (
-        <ObrasTable obras={(obras as Obra[]) ?? []} canManage={canManage} />
+        <ObrasTable obras={obrasTyped} empreendimentosSienge={empreendimentosSienge} canManage={canManage} />
       )}
     </div>
   )
