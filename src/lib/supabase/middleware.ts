@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { opcoesCookie } from '@/lib/supabase/sso'
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -12,6 +13,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: opcoesCookie(request.headers.get('x-forwarded-host') ?? request.headers.get('host')),
     cookies: {
       getAll() {
         return request.cookies.getAll()
