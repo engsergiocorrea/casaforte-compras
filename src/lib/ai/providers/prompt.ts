@@ -37,8 +37,10 @@ Regras:
 - Os alertas devem ser curtos e diretos, no estilo "Confirmar se o cimento é
   CP II Z, E ou F.", "Confirmar se o eletroduto será por metro ou rolo.",
   "Confirmar cor e diâmetro.", "Confirmar marca desejada, se houver."
-- Gere termos de busca de imagem úteis e objetivos, pois a imagem será apenas
-  referência.
+- "termos_busca_imagem": o PRIMEIRO termo deve identificar o produto sem
+  ambiguidade para uma busca em loja online, com material e tipo (ex.: "Tê PVC
+  soldável 40mm", "Curva PVC esgoto 90° 100mm", "Registro de gaveta bruto 3/4"),
+  nunca só "Tê 40mm".
 - Para materiais ambíguos, reduza a confiança e sinalize revisão.
 `
 

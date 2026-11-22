@@ -181,7 +181,7 @@ export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & 
 
   const supabase = await createServerSupabaseClient()
   const [{ data: materiais }, { data: imagens }] = await Promise.all([
-    supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id').eq('ativo', true),
+    supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id, especificacao_padrao').eq('ativo', true),
     supabase.from('material_images').select('material_catalogo_id').eq('principal', true).eq('aprovado', true).neq('origem', 'imagem_ilustrativa'),
   ])
   const comImagem = new Set((imagens ?? []).map((i) => i.material_catalogo_id))
@@ -191,7 +191,7 @@ export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & 
   let geradas = 0
   await emLotes(lote, 3, async (m) => {
     try {
-      if (await buscarFotoMaterial({ materialCatalogoId: m.id, categoriaId: m.categoria_id, nome: m.nome_padronizado })) geradas++
+      if (await buscarFotoMaterial({ materialCatalogoId: m.id, categoriaId: m.categoria_id, nome: m.nome_padronizado, termos: termoDaEspecificacao(m.especificacao_padrao) })) geradas++
     } catch (error) {
       console.error('[foto web catálogo]', m.nome_padronizado, error instanceof Error ? error.message : error)
     }
@@ -199,6 +199,12 @@ export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & 
 
   revalidatePath('/catalogo')
   return { success: true, geradas, faltam: pendentes.length - lote.length + (lote.length - geradas) }
+}
+
+// Primeira frase da especificação (ex.: "Tê PVC soldável 40mm marrom") como termo de busca.
+function termoDaEspecificacao(esp: string | null | undefined): string[] {
+  const frase = (esp ?? '').split(/[.\n]/)[0]?.trim()
+  return frase && frase.length > 3 && frase.length < 90 ? [frase] : []
 }
 
 // Troca a foto de um material por outra achada na internet.
@@ -209,13 +215,14 @@ export async function outraFotoMaterial(materialId: string): Promise<ActionResul
     return { success: false, error: (error as Error).message }
   }
   const supabase = await createServerSupabaseClient()
-  const { data: m } = await supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id').eq('id', materialId).maybeSingle()
+  const { data: m } = await supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id, especificacao_padrao').eq('id', materialId).maybeSingle()
   if (!m) return { success: false, error: 'Material não encontrado.' }
   try {
     const url = await buscarFotoMaterial({
       materialCatalogoId: m.id,
       categoriaId: m.categoria_id,
       nome: m.nome_padronizado,
+      termos: termoDaEspecificacao(m.especificacao_padrao),
       evitar: await fontesJaUsadas(m.id),
     })
     if (!url) return { success: false, error: 'Não achei outra foto para este material. Envie uma à mão.' }

@@ -30,7 +30,13 @@ export async function geminiJson<T>(prompt: string, opts: { temperature?: number
     model,
     {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: opts.temperature ?? 0.1, responseMimeType: 'application/json' },
+      generationConfig: {
+        temperature: opts.temperature ?? 0.1,
+        responseMimeType: 'application/json',
+        // Sem "raciocínio" interno: tarefas simples de organizar texto, e
+        // a resposta chega várias vezes mais rápido.
+        ...(model.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      },
     },
     opts.timeoutMs ?? 45_000
   )

@@ -26,6 +26,7 @@ export async function enrichWithGemini(
       generationConfig: {
         temperature: 0.2,
         responseMimeType: 'application/json',
+        ...(model.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
     }),
   })

@@ -111,13 +111,27 @@ async function compactar(bytes: Buffer, mime: string) {
   }
 }
 
-type Entrada = { materialCatalogoId: string; categoriaId: string | null; nome: string; evitar?: string[] }
+type Entrada = { materialCatalogoId: string; categoriaId: string | null; nome: string; termos?: string[]; evitar?: string[] }
 
 // Busca a foto do material na internet e a salva como imagem principal do
 // catálogo. `evitar` = fotos de origem já usadas (para "Outra foto").
 // Retorna a URL no nosso storage, ou null se nada foi achado.
-export async function buscarFotoMaterial({ materialCatalogoId, categoriaId, nome, evitar = [] }: Entrada): Promise<string | null> {
-  const candidatas = (await buscarFotosNaWeb(nome)).filter((u) => !evitar.includes(u))
+export async function buscarFotoMaterial({ materialCatalogoId, categoriaId, nome, termos = [], evitar = [] }: Entrada): Promise<string | null> {
+  // Tenta primeiro o termo mais completo (ex.: "Tê PVC soldável 40mm"), depois
+  // o nome, e por fim o nome com "material de construção" — no máximo 3 buscas.
+  const tentativas = [...new Set([...termos.filter((t) => t && t.length > 3).slice(0, 2), nome, `${nome} material de construção`])].slice(0, 3)
+  for (const termo of tentativas) {
+    const achou = await salvarPrimeiraFoto(termo, { materialCatalogoId, categoriaId, nome, evitar })
+    if (achou) return achou
+  }
+  return null
+}
+
+async function salvarPrimeiraFoto(
+  termo: string,
+  { materialCatalogoId, categoriaId, nome, evitar = [] }: Entrada
+): Promise<string | null> {
+  const candidatas = (await buscarFotosNaWeb(termo).catch(() => [] as string[])).filter((u) => !evitar.includes(u))
   for (const origem of candidatas) {
     const baixada = await baixarImagem(origem)
     if (!baixada) continue

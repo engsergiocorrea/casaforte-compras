@@ -1,5 +1,5 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
-import { enrichMaterialWithAI } from '@/lib/ai/material-enrichment'
+import { enriquecerEmLote } from '@/lib/ai/enriquecer-lote'
 import { findOrCreateMaterialFromAI } from '@/lib/catalogo/find-or-create-material'
 import { resolveMaterialImage } from '@/lib/ai/image-resolver'
 import { after } from 'next/server'
@@ -62,17 +62,21 @@ export async function prepareOrderWithAI(
     unidade: (c.unidade_padrao as string | null) ?? null,
   }))
 
-  // 1) Padroniza todos os itens em paralelo (até 4 por vez).
-  const enrichments = await emLotes(itensTyped, 4, (item) =>
-    enrichMaterialWithAI({
-      nome_material: item.nome_material,
-      descricao: item.descricao,
-      quantidade: item.quantidade,
-      unidade: item.unidade,
-      observacoes: item.observacoes,
-      catalogo,
-    })
-  )
+  // 1) Padroniza o pedido inteiro numa chamada só e, ao mesmo tempo, faz a
+  //    revisão do pedido (itens repetidos/quantidades estranhas).
+  const [enrichments, revisaoBruta] = await Promise.all([
+    enriquecerEmLote(
+      itensTyped.map((item) => ({
+        nome_material: item.nome_material,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        unidade: item.unidade,
+        observacoes: item.observacoes,
+      })),
+      catalogo
+    ),
+    revisarPedido(itensTyped.map((i) => ({ nome: i.nome_material, quantidade: Number(i.quantidade), unidade: i.unidade, materialId: null }))),
+  ])
 
   // 2) Liga cada item ao catálogo — em sequência, para dois itens iguais
   //    não criarem o mesmo material duas vezes.
@@ -177,15 +181,16 @@ export async function prepareOrderWithAI(
     })
   }
 
-  // 4) Revisão do pedido inteiro (duplicados, quantidades estranhas).
-  const alertasPedido = await revisarPedido(
-    preparedItems.map((p, i) => ({
-      nome: p.nome_padronizado,
-      quantidade: Number(itensTyped[i].quantidade),
-      unidade: itensTyped[i].unidade || p.unidade_sugerida,
-      materialId: p.material_catalogo_id ?? null,
-    }))
-  )
+  // 4) Junta a revisão da IA com a checagem local de itens repetidos.
+  const vistos = new Map<string, string>()
+  const repetidos: string[] = []
+  preparedItems.forEach((p) => {
+    if (!p.material_catalogo_id) return
+    const antes = vistos.get(p.material_catalogo_id)
+    if (antes) repetidos.push(`"${p.nome_padronizado}" aparece mais de uma vez no pedido. Juntar em um item só?`)
+    else vistos.set(p.material_catalogo_id, p.nome_padronizado)
+  })
+  const alertasPedido = [...repetidos, ...revisaoBruta].slice(0, 10)
   alertasGerais.unshift(...alertasPedido)
 
   const preparadoEm = new Date().toISOString()
