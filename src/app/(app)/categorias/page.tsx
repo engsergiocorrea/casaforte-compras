@@ -17,10 +17,10 @@ export default async function CategoriasPage() {
     .order('nome', { ascending: true })
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Categorias de materiais</h1>
+          <h1 className="text-[28px] sm:text-3xl">Categorias</h1>
           <p className="text-muted-foreground">Categorias usadas no catálogo e nos pedidos.</p>
         </div>
         {canManage ? (
@@ -29,7 +29,7 @@ export default async function CategoriasPage() {
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
           Erro ao carregar categorias: {error.message}
         </div>
       ) : (

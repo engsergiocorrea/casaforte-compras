@@ -109,7 +109,7 @@ export default async function PedidoDetailPage({
   const podeDecidirAprovacao = await canDecideApprovalAsync(supabase, profile, pedidoTyped)
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <PedidoHeaderCard
         pedido={pedidoTyped}
         obra={obra as Obra | null}

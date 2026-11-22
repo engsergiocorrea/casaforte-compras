@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -66,14 +66,11 @@ export function PedidoActionsPanel({
   if (!hasActions) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Ações</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="gap-0 py-0">
+      <CardContent className="space-y-3 p-4">
         {itensComRevisao > 0 ? (
-          <p className="rounded-md bg-amber-50 p-3 text-sm font-medium text-amber-800 border border-amber-200">
-            {itensComRevisao} item(ns) deste pedido precisam de revisão manual.
+          <p className="rounded-xl bg-amber-500/12 px-3 py-2.5 text-sm font-medium text-amber-800 dark:text-amber-200">
+            {itensComRevisao} {itensComRevisao === 1 ? 'item precisa' : 'itens precisam'} de conferência antes de enviar.
           </p>
         ) : null}
 
@@ -127,7 +124,7 @@ export function PedidoActionsPanel({
         </div>
 
         {canDecideApproval ? (
-          <div className="space-y-3 rounded-md border p-3">
+          <div className="space-y-3 rounded-xl bg-muted/60 p-3">
             <div className="space-y-2">
               <Label htmlFor="fornecedor-aprovacao">Fornecedor para envio do pedido</Label>
               <Select value={fornecedorId} onValueChange={(value) => setFornecedorId(value ?? '')}>

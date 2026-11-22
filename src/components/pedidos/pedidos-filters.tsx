@@ -11,17 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import type { Obra } from '@/types/database'
 
-const STATUS_OPTIONS = [
-  { value: 'todos', label: 'Todos os status' },
-  { value: 'rascunho', label: 'Rascunho' },
-  { value: 'pendente_revisao', label: 'Pendente de revisão (legado)' },
-  { value: 'em_revisao', label: 'Em revisão (legado)' },
-  { value: 'pendente_aprovacao', label: 'Aguardando aprovação' },
-  { value: 'aprovado', label: 'Aprovado' },
-  { value: 'devolvido', label: 'Devolvido' },
-  { value: 'cancelado', label: 'Cancelado' },
-]
-
 const PRIORIDADE_OPTIONS = [
   { value: 'todas', label: 'Todas as prioridades' },
   { value: 'baixa', label: 'Baixa' },
@@ -55,25 +44,12 @@ export function PedidosFilters({
   }
 
   const hasActiveFilters =
-    currentStatus !== 'todos' || currentPrioridade !== 'todas' || currentObraId !== 'todas'
+    currentPrioridade !== 'todas' || currentObraId !== 'todas'
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <Select value={currentStatus} onValueChange={(value) => setParam('status', value)}>
-        <SelectTrigger className="w-full sm:w-56">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
+    <div className="flex flex-wrap items-center gap-2">
       <Select value={currentPrioridade} onValueChange={(value) => setParam('prioridade', value)}>
-        <SelectTrigger className="w-full sm:w-48">
+        <SelectTrigger className="h-9 w-[calc(50%-4px)] rounded-full sm:w-44">
           <SelectValue placeholder="Prioridade" />
         </SelectTrigger>
         <SelectContent>
@@ -86,7 +62,7 @@ export function PedidosFilters({
       </Select>
 
       <Select value={currentObraId} onValueChange={(value) => setParam('obra_id', value)}>
-        <SelectTrigger className="w-full sm:w-56">
+        <SelectTrigger className="h-9 w-[calc(50%-4px)] rounded-full sm:w-52">
           <SelectValue placeholder="Obra" />
         </SelectTrigger>
         <SelectContent>
@@ -100,8 +76,8 @@ export function PedidosFilters({
       </Select>
 
       {hasActiveFilters ? (
-        <Button variant="outline" size="sm" onClick={() => router.push('/pedidos')}>
-          Limpar filtros
+        <Button variant="ghost" size="sm" className="rounded-full text-primary" onClick={() => router.push('/pedidos')}>
+          Limpar
         </Button>
       ) : null}
     </div>

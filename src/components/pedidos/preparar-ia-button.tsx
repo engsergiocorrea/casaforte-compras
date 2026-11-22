@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 
 // Com imagens geradas por IA, pedidos grandes levam alguns minutos.
-const TIMEOUT_MS = 300_000
+const TIMEOUT_MS = 120_000
 
 export function PrepararIaButton({ pedidoId, autoStart = false }: { pedidoId: string; autoStart?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -53,6 +53,8 @@ export function PrepararIaButton({ pedidoId, autoStart = false }: { pedidoId: st
           )
           setOpen(false)
           router.refresh()
+          // As imagens chegam em segundo plano: atualiza a tela algumas vezes.
+          for (const ms of [15_000, 35_000, 60_000, 100_000]) setTimeout(() => router.refresh(), ms)
         } else {
           const message = result.error ?? 'Não foi possível preparar o pedido com IA.'
           setErrorMessage(message)
@@ -75,7 +77,7 @@ export function PrepararIaButton({ pedidoId, autoStart = false }: { pedidoId: st
   useEffect(() => {
     if (!autoStart || iniciou.current) return
     iniciou.current = true
-    toast.info('A IA está organizando os itens e gerando as imagens…')
+    toast.info('A IA está organizando os itens…')
     router.replace(`/pedidos/${pedidoId}`, { scroll: false })
     handleConfirm()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,9 +99,8 @@ export function PrepararIaButton({ pedidoId, autoStart = false }: { pedidoId: st
           <AlertDialogTitle>Preparar pedido com IA</AlertDialogTitle>
           <AlertDialogDescription>
             A IA vai padronizar nomes e unidades, ligar cada item ao catálogo (sem duplicar
-            materiais), gerar a imagem dos materiais que ainda não têm e revisar o pedido
-            (itens repetidos, quantidades estranhas, informação faltando). Pode levar alguns
-            minutos em pedidos grandes.
+            materiais) e revisar o pedido (itens repetidos, quantidades estranhas, informação
+            faltando). As imagens dos materiais novos aparecem logo depois, sozinhas.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

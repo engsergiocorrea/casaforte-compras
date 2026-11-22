@@ -9,8 +9,8 @@ import type { PedidoStatus } from '@/types/database'
 // renderização — não são mais oferecidos no fluxo de pedidos novos.
 const STATUS_LABELS: Record<PedidoStatus, string> = {
   rascunho: 'Rascunho',
-  pendente_revisao: 'Pendente de revisão (legado)',
-  em_revisao: 'Em revisão (legado)',
+  pendente_revisao: 'Em revisão',
+  em_revisao: 'Em revisão',
   pendente_aprovacao: 'Aguardando aprovação',
   aprovado: 'Aprovado',
   enviado: 'Enviado',
@@ -22,22 +22,22 @@ const STATUS_LABELS: Record<PedidoStatus, string> = {
 }
 
 const STATUS_STYLES: Record<PedidoStatus, string> = {
-  rascunho: 'bg-zinc-100 text-zinc-600 border-zinc-200',
-  pendente_revisao: 'bg-amber-100 text-amber-700 border-amber-200',
-  em_revisao: 'bg-blue-100 text-blue-700 border-blue-200',
-  pendente_aprovacao: 'bg-purple-100 text-purple-700 border-purple-200',
-  aprovado: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  enviado: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  respondido: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  parcialmente_comprado: 'bg-blue-100 text-blue-700 border-blue-200',
-  comprado: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  cancelado: 'bg-zinc-100 text-zinc-500 border-zinc-200',
-  devolvido: 'bg-red-100 text-red-700 border-red-200',
+  rascunho: 'bg-zinc-500/12 text-zinc-600 dark:text-zinc-300',
+  pendente_revisao: 'bg-amber-500/14 text-amber-700 dark:text-amber-300',
+  em_revisao: 'bg-blue-500/12 text-blue-700 dark:text-blue-300',
+  pendente_aprovacao: 'bg-violet-500/12 text-violet-700 dark:text-violet-300',
+  aprovado: 'bg-emerald-500/14 text-emerald-700 dark:text-emerald-300',
+  enviado: 'bg-emerald-500/14 text-emerald-700 dark:text-emerald-300',
+  respondido: 'bg-emerald-500/14 text-emerald-700 dark:text-emerald-300',
+  parcialmente_comprado: 'bg-blue-500/12 text-blue-700 dark:text-blue-300',
+  comprado: 'bg-emerald-500/14 text-emerald-700 dark:text-emerald-300',
+  cancelado: 'bg-zinc-500/10 text-zinc-500 dark:text-zinc-400',
+  devolvido: 'bg-red-500/12 text-red-700 dark:text-red-300',
 }
 
 export function OrderStatusBadge({ status }: { status: PedidoStatus }) {
   return (
-    <Badge variant="outline" className={STATUS_STYLES[status]}>
+    <Badge variant="outline" className={`rounded-full border-transparent font-medium ${STATUS_STYLES[status]}`}>
       {STATUS_LABELS[status]}
     </Badge>
   )

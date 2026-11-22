@@ -17,7 +17,7 @@ export default async function CatalogoPage() {
     { data: categorias, error: categoriasError },
     { data: imagensAprovadas },
   ] = await Promise.all([
-    supabase.from('materiais_catalogo').select('*').order('created_at', { ascending: false }),
+    supabase.from('materiais_catalogo').select('*').order('ativo', { ascending: false }).order('nome_padronizado'),
     supabase.from('categorias_materiais').select('*').eq('ativo', true).order('nome'),
     supabase
       .from('material_images')
@@ -37,10 +37,10 @@ export default async function CatalogoPage() {
   const semImagem = ((materiais as MaterialCatalogo[]) ?? []).filter((m) => !imagemPorMaterial[m.id]).length
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Materiais</h1>
+          <h1 className="text-[28px] sm:text-3xl">Materiais</h1>
           <p className="text-muted-foreground">
             Catálogo padronizado usado nos pedidos. A IA reaproveita estes materiais e as imagens.
           </p>

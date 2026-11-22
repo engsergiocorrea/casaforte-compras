@@ -1,22 +1,15 @@
 'use client'
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { MaterialFormDialog } from '@/components/catalogo/material-form-dialog'
 import { MaterialImageDialog } from '@/components/catalogo/material-image-dialog'
 import { setMaterialCatalogoAtivo } from '@/app/(app)/catalogo/actions'
 import type { CategoriaMaterial, MaterialCatalogo } from '@/types/database'
 
+// Catálogo em grade de fotos (estilo loja): a imagem é o principal, nome e
+// unidade embaixo; ações discretas para quem gerencia o catálogo.
 export function MateriaisTable({
   materiais,
   categorias,
@@ -32,109 +25,64 @@ export function MateriaisTable({
 }) {
   if (materiais.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-        Nenhum material cadastrado ainda.
+      <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
+        Nenhum material ainda. Eles aparecem aqui conforme os pedidos são preparados pela IA.
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Imagem</TableHead>
-            <TableHead>Material</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Unidade</TableHead>
-            <TableHead>Origem</TableHead>
-            <TableHead>Status</TableHead>
-            {canManage ? <TableHead className="text-right">Ações</TableHead> : null}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {materiais.map((material) => (
-            <TableRow key={material.id}>
-              <TableCell>
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border bg-muted text-center text-[10px] text-muted-foreground">
-                  {imagemPorMaterial[material.id] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={imagemPorMaterial[material.id]}
-                      alt={material.nome_padronizado}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <span className="px-1">Sem imagem</span>
-                  )}
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {materiais.map((material) => {
+        const img = imagemPorMaterial[material.id]
+        const categoria = material.categoria_id ? categoriasPorId[material.categoria_id] : null
+        return (
+          <li
+            key={material.id}
+            className={`flex flex-col overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_oklch(0_0_0/4%),0_0_0_0.5px_oklch(0_0_0/5%)] ${material.ativo ? '' : 'opacity-55'}`}
+          >
+            <div className="aspect-square bg-white">
+              {img ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={img} alt={material.nome_padronizado} loading="lazy" className="size-full object-contain p-2" />
+              ) : (
+                <div className="grid size-full place-items-center bg-muted text-muted-foreground/50">
+                  <Package className="size-8" />
                 </div>
-              </TableCell>
-              <TableCell className="font-medium">{material.nome_padronizado}</TableCell>
-              <TableCell>
-                {material.categoria_id ? categoriasPorId[material.categoria_id] ?? '-' : '-'}
-              </TableCell>
-              <TableCell>{material.unidade_padrao || '-'}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {material.criado_por_ia ? (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      IA
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">Manual</Badge>
-                  )}
-                  {material.aprovado ? (
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                      Aprovado
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                      Não aprovado
-                    </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={material.ativo ? 'ativo' : 'inativo'} />
-              </TableCell>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col gap-0.5 p-3">
+              <p className="line-clamp-2 text-[14px] font-medium leading-snug">{material.nome_padronizado}</p>
+              <p className="text-[12px] text-muted-foreground">
+                {[material.unidade_padrao, categoria].filter(Boolean).join(' · ') || '—'}
+                {!material.ativo ? ' · inativo' : ''}
+              </p>
               {canManage ? (
-                <TableCell className="flex justify-end gap-2">
+                <div className="-mx-1 mt-auto flex flex-wrap gap-0.5 pt-2">
                   <MaterialImageDialog
                     materialId={material.id}
-                    trigger={
-                      <Button variant="outline" size="sm">
-                        {imagemPorMaterial[material.id] ? 'Trocar imagem' : 'Enviar imagem'}
-                      </Button>
-                    }
+                    trigger={<Button variant="ghost" size="sm" className="h-7 rounded-full px-2 text-[12px] text-primary">{img ? 'Foto' : 'Enviar foto'}</Button>}
                   />
                   <MaterialFormDialog
                     material={material}
                     categorias={categorias}
-                    trigger={<Button variant="outline" size="sm">Editar</Button>}
+                    trigger={<Button variant="ghost" size="sm" className="h-7 rounded-full px-2 text-[12px] text-primary">Editar</Button>}
                   />
-                  {material.ativo ? (
-                    <ConfirmActionButton
-                      label="Inativar"
-                      title="Inativar material"
-                      description={`Tem certeza que deseja inativar "${material.nome_padronizado}"?`}
-                      successMessage="Material inativado."
-                      action={() => setMaterialCatalogoAtivo(material.id, false)}
-                    />
-                  ) : (
-                    <ConfirmActionButton
-                      label="Reativar"
-                      title="Reativar material"
-                      description={`Tem certeza que deseja reativar "${material.nome_padronizado}"?`}
-                      successMessage="Material reativado."
-                      action={() => setMaterialCatalogoAtivo(material.id, true)}
-                    />
-                  )}
-                </TableCell>
+                  <ConfirmActionButton
+                    label={material.ativo ? 'Inativar' : 'Reativar'}
+                    title={material.ativo ? 'Inativar material' : 'Reativar material'}
+                    description={`${material.ativo ? 'Inativar' : 'Reativar'} "${material.nome_padronizado}"?`}
+                    successMessage={material.ativo ? 'Material inativado.' : 'Material reativado.'}
+                    variant="ghost"
+                    className="h-7 rounded-full px-2 text-[12px] text-muted-foreground"
+                    action={() => setMaterialCatalogoAtivo(material.id, !material.ativo)}
+                  />
+                </div>
               ) : null}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

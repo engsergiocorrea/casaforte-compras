@@ -51,7 +51,7 @@ export function PedidoCreateForm({
   }
 
   return (
-    <Card className="max-w-2xl">
+    <Card>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -111,7 +111,7 @@ export function PedidoCreateForm({
             </div>
           </div>
 
-          <div className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-4">
+          <div className="space-y-2 rounded-2xl bg-primary/[0.06] p-4 ring-1 ring-primary/20">
             <Label htmlFor="lista_texto" className="flex items-center gap-2 text-base">
               <Sparkles className="size-4 text-primary" /> Lista de materiais
             </Label>
@@ -134,7 +134,7 @@ export function PedidoCreateForm({
             <Textarea id="observacoes_gerais" name="observacoes_gerais" rows={2} />
           </div>
 
-          <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
+          <Button type="submit" disabled={isPending} className="h-11 w-full rounded-xl text-[15px] font-semibold">
             {isPending ? 'Criando e lendo a lista…' : 'Criar pedido'}
           </Button>
         </form>

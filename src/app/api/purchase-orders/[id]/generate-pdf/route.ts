@@ -5,6 +5,9 @@ import { canGeneratePdf } from '@/lib/permissions/pedido'
 import { generatePurchaseOrderDocument } from '@/lib/pdf/generate-purchase-order-document'
 import type { PedidoCompra } from '@/types/database'
 
+// A preparação gera as imagens depois de responder (after): dá tempo a ela.
+export const maxDuration = 300
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

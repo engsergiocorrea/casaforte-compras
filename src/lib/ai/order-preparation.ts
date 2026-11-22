@@ -2,7 +2,9 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { enrichMaterialWithAI } from '@/lib/ai/material-enrichment'
 import { findOrCreateMaterialFromAI } from '@/lib/catalogo/find-or-create-material'
 import { resolveMaterialImage } from '@/lib/ai/image-resolver'
-import { emLotes } from '@/lib/ai/gemini-client'
+import { after } from 'next/server'
+import { emLotes, geminiKey } from '@/lib/ai/gemini-client'
+import { findApprovedMaterialImage } from '@/lib/catalogo/find-material-image'
 import { revisarPedido } from '@/lib/ai/order-review'
 import { registrarAprovacao, registrarLog } from '@/lib/logs/activity'
 import type { OrderPreparationResult, PreparedOrderItem } from '@/types/ai'
@@ -79,22 +81,45 @@ export async function prepareOrderWithAI(
     materiais.push(await findOrCreateMaterialFromAI(enrichment))
   }
 
-  // 3) Uma imagem por material (reusa a do catálogo ou a IA gera), 3 por vez.
+  // 3) Imagem: reusa a do catálogo na hora. As que faltam a IA gera DEPOIS
+  //    de responder (after), para a preparação levar segundos e não minutos;
+  //    cada item recebe a imagem assim que ela fica pronta.
   const unicos = [...new Map(materiais.map((m, i) => [m.id, i])).entries()]
-  const imagens = new Map<string, Awaited<ReturnType<typeof resolveMaterialImage>>>()
-  await emLotes(unicos, 3, async ([materialId, i]) => {
-    const m = materiais[i]
-    imagens.set(
-      materialId,
-      await resolveMaterialImage({
-        materialCatalogoId: m.id,
-        categoriaId: m.categoria_id,
-        nomeMaterial: m.nome_padronizado || enrichments[i].nome_padronizado,
-        especificacao: enrichments[i].especificacao_melhorada,
-        termosBusca: enrichments[i].termos_busca_imagem,
+  const imagens = new Map<string, { imageUrl: string | null; origem: string | null; aprovada: boolean; precisaRevisao: boolean }>()
+  const gerarDepois: { materialId: string; i: number }[] = []
+  await Promise.all(
+    unicos.map(async ([materialId, i]) => {
+      const existente = await findApprovedMaterialImage(materialId)
+      if (existente) {
+        imagens.set(materialId, { imageUrl: existente.image_url, origem: 'catalogo_interno', aprovada: true, precisaRevisao: false })
+      } else {
+        imagens.set(materialId, { imageUrl: null, origem: null, aprovada: false, precisaRevisao: !geminiKey() })
+        if (geminiKey()) gerarDepois.push({ materialId, i })
+      }
+    })
+  )
+
+  if (gerarDepois.length > 0) {
+    after(async () => {
+      const admin = createAdminSupabaseClient()
+      await emLotes(gerarDepois, 3, async ({ materialId, i }) => {
+        const r = await resolveMaterialImage({
+          materialCatalogoId: materialId,
+          categoriaId: materiais[i].categoria_id,
+          nomeMaterial: materiais[i].nome_padronizado || enrichments[i].nome_padronizado,
+          especificacao: enrichments[i].especificacao_melhorada,
+          termosBusca: enrichments[i].termos_busca_imagem,
+        })
+        if (r.imageUrl) {
+          await admin
+            .from('pedido_compra_itens')
+            .update({ imagem_referencia_url: r.imageUrl, imagem_origem: r.origem, imagem_aprovada: r.aprovada, updated_at: new Date().toISOString() })
+            .eq('pedido_compra_id', pedidoId)
+            .eq('material_catalogo_id', materialId)
+        }
       })
-    )
-  })
+    })
+  }
 
   for (let i = 0; i < itensTyped.length; i++) {
     const item = itensTyped[i]

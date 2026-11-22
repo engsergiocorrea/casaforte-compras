@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/pedidos/order-status-badge'
 import { PriorityBadge } from '@/components/pedidos/priority-badge'
@@ -22,17 +22,25 @@ export function PedidoHeaderCard({
   engenheiros: Engenheiro[]
   canEdit: boolean
 }) {
+  const linhas: [string, string][] = [
+    ['Engenheiro', engenheiro?.nome ?? '—'],
+    ['Solicitante', solicitante?.nome ?? '—'],
+    [
+      'Precisa até',
+      pedido.data_necessidade
+        ? new Date(`${pedido.data_necessidade}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—',
+    ],
+  ]
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Pedido de compra
-          </p>
-          <CardTitle className="text-2xl">#{pedido.numero}</CardTitle>
-          <div className="mt-2 flex flex-wrap gap-2">
+    <section className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-mono text-[13px] text-muted-foreground">Pedido #{pedido.numero}</p>
+          <h1 className="truncate text-[28px] sm:text-3xl">{obra?.nome ?? 'Obra'}</h1>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <OrderStatusBadge status={pedido.status} />
-            <PriorityBadge prioridade={pedido.prioridade} />
+            {pedido.prioridade !== 'normal' ? <PriorityBadge prioridade={pedido.prioridade} /> : null}
           </div>
         </div>
         {canEdit ? (
@@ -40,38 +48,27 @@ export function PedidoHeaderCard({
             pedido={pedido}
             obras={obras}
             engenheiros={engenheiros}
-            trigger={<Button variant="outline" size="sm">Editar</Button>}
+            trigger={<Button variant="ghost" size="sm" className="rounded-full text-primary">Editar</Button>}
           />
         ) : null}
-      </CardHeader>
-      <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-        <div>
-          <p className="text-muted-foreground">Obra</p>
-          <p className="font-medium">{obra?.nome ?? '-'}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Engenheiro responsável</p>
-          <p className="font-medium">{engenheiro?.nome ?? '-'}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Solicitante</p>
-          <p className="font-medium">{solicitante?.nome ?? '-'}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Data de necessidade</p>
-          <p className="font-medium">
-            {pedido.data_necessidade
-              ? new Date(pedido.data_necessidade).toLocaleDateString('pt-BR')
-              : '-'}
-          </p>
-        </div>
-        {pedido.observacoes_gerais ? (
-          <div className="sm:col-span-2">
-            <p className="text-muted-foreground">Observações gerais</p>
-            <p className="font-medium">{pedido.observacoes_gerais}</p>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+      </div>
+
+      <Card className="gap-0 py-0">
+        <CardContent className="divide-y divide-border/70 px-4 text-[15px]">
+          {linhas.map(([rotulo, valor]) => (
+            <div key={rotulo} className="flex items-center justify-between gap-4 py-3">
+              <span className="text-muted-foreground">{rotulo}</span>
+              <span className="truncate text-right font-medium">{valor}</span>
+            </div>
+          ))}
+          {pedido.observacoes_gerais ? (
+            <div className="py-3">
+              <p className="text-muted-foreground">Observações</p>
+              <p className="mt-0.5">{pedido.observacoes_gerais}</p>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </section>
   )
 }

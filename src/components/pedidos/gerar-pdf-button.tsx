@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 
-const TIMEOUT_MS = 30_000
+const TIMEOUT_MS = 120_000
 
 export function GerarPdfButton({ pedidoId }: { pedidoId: string }) {
   const [open, setOpen] = useState(false)
@@ -42,6 +42,7 @@ export function GerarPdfButton({ pedidoId }: { pedidoId: string }) {
           toast.success('Documento do pedido gerado com sucesso.')
           setOpen(false)
           router.refresh()
+          for (const ms of [20_000, 50_000, 90_000]) setTimeout(() => router.refresh(), ms)
         } else {
           const message = result.error ?? 'Não foi possível gerar o documento do pedido.'
           setErrorMessage(message)

@@ -25,14 +25,14 @@ export function FornecedoresTable({
 }) {
   if (fornecedores.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+      <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
         Nenhum fornecedor cadastrado ainda.
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_oklch(0_0_0/4%),0_0_0_0.5px_oklch(0_0_0/5%)]">
       <Table>
         <TableHeader>
           <TableRow>

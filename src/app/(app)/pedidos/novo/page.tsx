@@ -20,9 +20,9 @@ export default async function NovoPedidoPage() {
   ])
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">Novo pedido</h1>
+        <h1 className="text-[28px] sm:text-3xl">Novo pedido</h1>
         <p className="text-muted-foreground">
           Escolha a obra e cole a lista de materiais. A IA organiza o resto.
         </p>

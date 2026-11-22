@@ -1,12 +1,5 @@
 import Link from 'next/link'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { ChevronRight } from 'lucide-react'
 import { OrderStatusBadge } from '@/components/pedidos/order-status-badge'
 import { PriorityBadge } from '@/components/pedidos/priority-badge'
 import type { PedidoCompra } from '@/types/database'
@@ -21,51 +14,41 @@ export type PedidoListItem = {
   solicitante: { nome: string } | null
 }
 
+const dataCurta = (iso: string) =>
+  new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(iso))
+
+// Lista agrupada (estilo Ajustes do iPhone): uma linha por pedido, toque
+// em qualquer ponto da linha abre o pedido.
 export function PedidosTable({ pedidos }: { pedidos: PedidoListItem[] }) {
   if (pedidos.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-        Nenhum pedido encontrado para os filtros selecionados.
+      <div className="rounded-2xl border border-dashed p-10 text-center">
+        <p className="font-medium">Nenhum pedido aqui</p>
+        <p className="mt-1 text-sm text-muted-foreground">Mude o filtro ou crie um pedido novo.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nº</TableHead>
-            <TableHead>Obra</TableHead>
-            <TableHead>Solicitante</TableHead>
-            <TableHead>Prioridade</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Criado em</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pedidos.map((pedido) => (
-            <TableRow key={pedido.id}>
-              <TableCell className="font-medium">#{pedido.numero}</TableCell>
-              <TableCell>{pedido.obra?.nome ?? '-'}</TableCell>
-              <TableCell>{pedido.solicitante?.nome ?? '-'}</TableCell>
-              <TableCell>
-                <PriorityBadge prioridade={pedido.prioridade} />
-              </TableCell>
-              <TableCell>
-                <OrderStatusBadge status={pedido.status} />
-              </TableCell>
-              <TableCell>{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</TableCell>
-              <TableCell className="text-right">
-                <Link href={`/pedidos/${pedido.id}`} className="text-sm font-medium text-primary hover:underline">
-                  Ver pedido
-                </Link>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_oklch(0_0_0/4%),0_0_0_0.5px_oklch(0_0_0/5%)]">
+      {pedidos.map((p) => (
+        <li key={p.id}>
+          <Link href={`/pedidos/${p.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/60 active:bg-muted">
+            <span className="w-11 shrink-0 font-mono text-[13px] text-muted-foreground">#{p.numero}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{p.obra?.nome ?? 'Obra'}</span>
+              <span className="block truncate text-[13px] text-muted-foreground">
+                {p.solicitante?.nome ?? '—'} · {dataCurta(p.created_at)}
+              </span>
+            </span>
+            <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+              {p.prioridade === 'alta' || p.prioridade === 'urgente' ? <PriorityBadge prioridade={p.prioridade} /> : null}
+              <OrderStatusBadge status={p.status} />
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }

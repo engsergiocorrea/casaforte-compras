@@ -1,54 +1,41 @@
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PedidoStatus } from '@/types/database'
 
-// Resumo simplificado: foca nos 5 status principais do fluxo novo. Status
-// legados de revisão (pendente_revisao/em_revisao) e de pós-aprovação
-// (enviado/respondido/parcialmente_comprado/comprado) são agrupados no
-// card "Outros" (contagem calculada em page.tsx) para não perder
-// visibilidade de pedidos antigos. O clique em "Outros" leva para a lista
-// completa sem filtro de status, já que não há suporte a filtro multi-status.
-const SUMMARY_ITEMS: { key: PedidoStatus | 'todos' | 'outros'; label: string }[] = [
+// Controle segmentado (estilo iOS) com a contagem de cada status. Substitui
+// os 8 cartões e o filtro de status repetido. Rola de lado no celular.
+const ITENS: { key: PedidoStatus | 'todos'; label: string }[] = [
   { key: 'todos', label: 'Todos' },
   { key: 'rascunho', label: 'Rascunhos' },
-  { key: 'pendente_aprovacao', label: 'Aguardando aprovação' },
+  { key: 'pendente_aprovacao', label: 'Aguardando' },
   { key: 'aprovado', label: 'Aprovados' },
   { key: 'devolvido', label: 'Devolvidos' },
   { key: 'cancelado', label: 'Cancelados' },
-  { key: 'outros', label: 'Outros' },
 ]
 
-export function PedidosStatusSummary({
-  counts,
-  activeStatus,
-}: {
-  counts: Record<string, number>
-  activeStatus: string
-}) {
+export function PedidosStatusSummary({ counts, activeStatus }: { counts: Record<string, number>; activeStatus: string }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-      {SUMMARY_ITEMS.map((item) => {
-        const isActive = activeStatus === item.key || (item.key === 'todos' && activeStatus === 'todos')
-        const href =
-          item.key === 'todos' || item.key === 'outros' ? '/pedidos' : `/pedidos?status=${item.key}`
-
-        return (
-          <Link key={item.key} href={href}>
-            <Card
-              className={
-                isActive ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/40'
-              }
+    <nav aria-label="Filtrar por status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
+      <div className="inline-flex gap-1 rounded-full bg-muted p-1">
+        {ITENS.map((item) => {
+          const ativo = activeStatus === item.key
+          const href = item.key === 'todos' ? '/pedidos' : `/pedidos?status=${item.key}`
+          return (
+            <Link
+              key={item.key}
+              href={href}
+              aria-current={ativo ? 'page' : undefined}
+              className={`cf-press flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
+                ativo ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  {item.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-2xl font-bold">{counts[item.key] ?? 0}</CardContent>
-            </Card>
-          </Link>
-        )
-      })}
-    </div>
+              {item.label}
+              <span className={`tabular-nums text-[12px] ${ativo ? 'text-primary' : 'text-muted-foreground/70'}`}>
+                {counts[item.key] ?? 0}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
   )
 }

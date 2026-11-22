@@ -1,14 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { isEvolutionApiConfigured } from '@/lib/whatsapp/evolution-client'
 
 function statusBadge(configurado: boolean) {
   return configurado ? (
-    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+    <Badge variant="outline" className="shrink-0 rounded-full border-transparent bg-emerald-500/14 text-emerald-700 dark:text-emerald-300">
       Configurado
     </Badge>
   ) : (
-    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+    <Badge variant="outline" className="shrink-0 rounded-full border-transparent bg-amber-500/14 text-amber-700 dark:text-amber-300">
       A configurar
     </Badge>
   )
@@ -47,23 +46,20 @@ export default function ConfiguracoesPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">Integrações e parâmetros do sistema.</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="mx-auto max-w-2xl space-y-5">
+      <h1 className="text-[28px] sm:text-3xl">Configurações</h1>
+      <p className="-mt-3 text-muted-foreground">Integrações do sistema.</p>
+      <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_oklch(0_0_0/4%),0_0_0_0.5px_oklch(0_0_0/5%)]">
         {configCards.map((card) => (
-          <Card key={card.titulo}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{card.titulo}</CardTitle>
-              {statusBadge(card.configurado)}
-            </CardHeader>
-            <CardContent className="text-muted-foreground">{card.descricao}</CardContent>
-          </Card>
+          <li key={card.titulo} className="flex items-start justify-between gap-4 px-4 py-3.5">
+            <div className="min-w-0">
+              <p className="font-medium">{card.titulo}</p>
+              <p className="text-[13px] text-muted-foreground">{card.descricao}</p>
+            </div>
+            {statusBadge(card.configurado)}
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }
