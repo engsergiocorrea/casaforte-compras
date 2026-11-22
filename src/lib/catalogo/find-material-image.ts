@@ -11,6 +11,7 @@ export async function findApprovedMaterialImage(
     .select('*')
     .eq('material_catalogo_id', materialCatalogoId)
     .eq('aprovado', true)
+    .neq('origem', 'imagem_ilustrativa')
     .order('principal', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(1)

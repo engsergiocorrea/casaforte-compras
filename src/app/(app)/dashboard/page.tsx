@@ -46,7 +46,7 @@ export default async function InicioPage() {
       .order('created_at', { ascending: false })
       .limit(6),
     supabase.from('materiais_catalogo').select('id', { count: 'exact', head: true }).eq('ativo', true),
-    supabase.from('material_images').select('material_catalogo_id', { count: 'exact', head: true }).eq('principal', true).eq('aprovado', true),
+    supabase.from('material_images').select('material_catalogo_id', { count: 'exact', head: true }).eq('principal', true).eq('aprovado', true).neq('origem', 'imagem_ilustrativa'),
   ])
 
   const nome = (profile?.nome as string | undefined)?.split(' ')[0]

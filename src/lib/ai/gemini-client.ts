@@ -1,6 +1,5 @@
 // Cliente mínimo do Gemini (Google) usado pelas funções novas de IA do Compras:
-// respostas em JSON (texto) e geração de imagem ilustrativa de material.
-// Chave: GEMINI_API_KEY. Modelos: GEMINI_MODEL (texto) e GEMINI_IMAGE_MODEL.
+// respostas em JSON (texto). Chave: GEMINI_API_KEY. Modelo: GEMINI_MODEL.
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
@@ -39,21 +38,6 @@ export async function geminiJson<T>(prompt: string, opts: { temperature?: number
   if (!text) throw new Error('Gemini não retornou texto.')
   const limpo = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
   return JSON.parse(limpo) as T
-}
-
-export async function geminiImagem(prompt: string): Promise<{ bytes: Buffer; mime: string }> {
-  const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image'
-  const data = await chamar(
-    model,
-    {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } },
-    },
-    90_000
-  )
-  const parte = data?.candidates?.[0]?.content?.parts?.find((p: { inlineData?: unknown }) => p.inlineData)
-  if (!parte?.inlineData?.data) throw new Error('Gemini não retornou imagem.')
-  return { bytes: Buffer.from(parte.inlineData.data, 'base64'), mime: parte.inlineData.mimeType || 'image/png' }
 }
 
 // Executa tarefas com no máximo `limite` em paralelo, preservando a ordem.

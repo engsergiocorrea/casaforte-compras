@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmActionButton } from '@/components/shared/confirm-action-button'
 import { MaterialFormDialog } from '@/components/catalogo/material-form-dialog'
 import { MaterialImageDialog } from '@/components/catalogo/material-image-dialog'
-import { setMaterialCatalogoAtivo } from '@/app/(app)/catalogo/actions'
+import { outraFotoMaterial, setMaterialCatalogoAtivo } from '@/app/(app)/catalogo/actions'
 import type { CategoriaMaterial, MaterialCatalogo } from '@/types/database'
 
 // Catálogo em grade de fotos (estilo loja): a imagem é o principal, nome e
@@ -59,9 +59,18 @@ export function MateriaisTable({
               </p>
               {canManage ? (
                 <div className="-mx-1 mt-auto flex flex-wrap gap-0.5 pt-2">
+                  <ConfirmActionButton
+                    label={img ? 'Outra foto' : 'Buscar foto'}
+                    title={img ? 'Buscar outra foto' : 'Buscar foto'}
+                    description={`Procurar ${img ? 'outra foto' : 'uma foto'} de "${material.nome_padronizado}" nas lojas da internet?`}
+                    successMessage="Foto atualizada."
+                    variant="ghost"
+                    className="h-7 rounded-full px-2 text-[12px] text-primary"
+                    action={() => outraFotoMaterial(material.id)}
+                  />
                   <MaterialImageDialog
                     materialId={material.id}
-                    trigger={<Button variant="ghost" size="sm" className="h-7 rounded-full px-2 text-[12px] text-primary">{img ? 'Foto' : 'Enviar foto'}</Button>}
+                    trigger={<Button variant="ghost" size="sm" className="h-7 rounded-full px-2 text-[12px] text-primary">Enviar</Button>}
                   />
                   <MaterialFormDialog
                     material={material}

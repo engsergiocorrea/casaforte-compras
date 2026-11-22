@@ -8,7 +8,7 @@ import { normalizeText } from '@/lib/utils/normalize-text'
 import { materialCatalogoSchema } from '@/lib/validations/material-catalogo'
 import type { ActionResult, FormActionState } from '@/lib/action-result'
 import { emLotes, geminiKey } from '@/lib/ai/gemini-client'
-import { gerarImagemMaterial } from '@/lib/ai/material-image'
+import { buscarFotoMaterial, fontesJaUsadas } from '@/lib/images/foto-web'
 
 function nullableField(value: string | undefined) {
   return value && value.length > 0 ? value : null
@@ -168,21 +168,21 @@ export async function setMaterialCatalogoAtivo(id: string, ativo: boolean): Prom
   return { success: true }
 }
 
-// Gera com IA a imagem dos materiais que ainda não têm imagem principal
-// aprovada. Faz no máximo `limite` por vez (3 em paralelo) para não estourar
-// o tempo da requisição; o botão pode ser clicado de novo para continuar.
+// Busca na internet a foto dos materiais sem foto (ou com a antiga imagem
+// gerada por IA). No máximo `limite` por vez, 3 em paralelo; o botão pode ser
+// clicado de novo para continuar.
 export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & { geradas?: number; faltam?: number }> {
   try {
     await assertCanManageCatalogo()
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
-  if (!geminiKey()) return { success: false, error: 'IA não configurada no servidor (GEMINI_API_KEY).' }
+  if (!geminiKey()) return { success: false, error: 'Busca não configurada no servidor (GEMINI_API_KEY).' }
 
   const supabase = await createServerSupabaseClient()
   const [{ data: materiais }, { data: imagens }] = await Promise.all([
-    supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id, especificacao_padrao').eq('ativo', true),
-    supabase.from('material_images').select('material_catalogo_id').eq('principal', true).eq('aprovado', true),
+    supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id').eq('ativo', true),
+    supabase.from('material_images').select('material_catalogo_id').eq('principal', true).eq('aprovado', true).neq('origem', 'imagem_ilustrativa'),
   ])
   const comImagem = new Set((imagens ?? []).map((i) => i.material_catalogo_id))
   const pendentes = (materiais ?? []).filter((m) => !comImagem.has(m.id))
@@ -191,18 +191,42 @@ export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & 
   let geradas = 0
   await emLotes(lote, 3, async (m) => {
     try {
-      await gerarImagemMaterial({
-        materialCatalogoId: m.id,
-        categoriaId: m.categoria_id,
-        nome: m.nome_padronizado,
-        especificacao: m.especificacao_padrao,
-      })
-      geradas++
+      if (await buscarFotoMaterial({ materialCatalogoId: m.id, categoriaId: m.categoria_id, nome: m.nome_padronizado })) geradas++
     } catch (error) {
-      console.error('[IA imagem catálogo]', m.nome_padronizado, error instanceof Error ? error.message : error)
+      console.error('[foto web catálogo]', m.nome_padronizado, error instanceof Error ? error.message : error)
     }
   })
 
   revalidatePath('/catalogo')
-  return { success: true, geradas, faltam: pendentes.length - geradas }
+  return { success: true, geradas, faltam: pendentes.length - lote.length + (lote.length - geradas) }
+}
+
+// Troca a foto de um material por outra achada na internet.
+export async function outraFotoMaterial(materialId: string): Promise<ActionResult> {
+  try {
+    await assertCanManageCatalogo()
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+  const supabase = await createServerSupabaseClient()
+  const { data: m } = await supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id').eq('id', materialId).maybeSingle()
+  if (!m) return { success: false, error: 'Material não encontrado.' }
+  try {
+    const url = await buscarFotoMaterial({
+      materialCatalogoId: m.id,
+      categoriaId: m.categoria_id,
+      nome: m.nome_padronizado,
+      evitar: await fontesJaUsadas(m.id),
+    })
+    if (!url) return { success: false, error: 'Não achei outra foto para este material. Envie uma à mão.' }
+    // Atualiza também os itens de pedidos abertos que usam este material.
+    await supabase
+      .from('pedido_compra_itens')
+      .update({ imagem_referencia_url: url, imagem_origem: 'referencia_web', imagem_aprovada: true })
+      .eq('material_catalogo_id', m.id)
+    revalidatePath('/catalogo')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao buscar foto.' }
+  }
 }

@@ -23,7 +23,8 @@ export default async function CatalogoPage() {
       .from('material_images')
       .select('material_catalogo_id, image_url')
       .eq('aprovado', true)
-      .eq('principal', true),
+      .eq('principal', true)
+      .neq('origem', 'imagem_ilustrativa'),
   ])
 
   const categoriasList = (categorias as CategoriaMaterial[]) ?? []

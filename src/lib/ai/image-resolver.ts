@@ -1,5 +1,5 @@
 import { findApprovedMaterialImage } from '@/lib/catalogo/find-material-image'
-import { gerarImagemMaterial } from './material-image'
+import { buscarFotoMaterial } from '@/lib/images/foto-web'
 import { geminiKey } from './gemini-client'
 
 type ResolveImageInput = {
@@ -17,28 +17,21 @@ type ResolveImageResult = {
   precisaRevisao: boolean
 }
 
-// Ordem: 1) imagem já aprovada no catálogo (reuso); 2) a IA gera uma imagem
-// ilustrativa do material e ela passa a ser a imagem do catálogo. Se a IA
-// falhar, o item fica sem imagem e marcado para revisão.
-export async function resolveMaterialImage({
-  materialCatalogoId,
-  categoriaId,
-  nomeMaterial,
-  especificacao,
-}: ResolveImageInput): Promise<ResolveImageResult> {
+// Ordem: 1) foto já aprovada no catálogo (reuso); 2) foto real de produto
+// achada na internet (lojas brasileiras), que passa a ser a do catálogo.
+// Se nada for achado, o item fica sem foto (dá para enviar uma à mão).
+export async function resolveMaterialImage({ materialCatalogoId, categoriaId, nomeMaterial }: ResolveImageInput): Promise<ResolveImageResult> {
   const existente = await findApprovedMaterialImage(materialCatalogoId)
   if (existente) {
     return { imageUrl: existente.image_url, origem: 'catalogo_interno', aprovada: true, precisaRevisao: false }
   }
-
   if (geminiKey()) {
     try {
-      const url = await gerarImagemMaterial({ materialCatalogoId, categoriaId, nome: nomeMaterial, especificacao })
-      return { imageUrl: url, origem: 'imagem_ilustrativa', aprovada: true, precisaRevisao: false }
+      const url = await buscarFotoMaterial({ materialCatalogoId, categoriaId, nome: nomeMaterial })
+      if (url) return { imageUrl: url, origem: 'referencia_web', aprovada: true, precisaRevisao: false }
     } catch (error) {
-      console.error('[IA imagem] falhou:', error instanceof Error ? error.message : error)
+      console.error('[foto web] falhou:', error instanceof Error ? error.message : error)
     }
   }
-
-  return { imageUrl: null, origem: null, aprovada: false, precisaRevisao: true }
+  return { imageUrl: null, origem: null, aprovada: false, precisaRevisao: false }
 }
