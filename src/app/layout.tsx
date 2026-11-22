@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CarregandoEntrePaginas } from '@/components/cf-carregando/entre-paginas';
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <CarregandoEntrePaginas />
           {children}
         </ThemeProvider>
       </body>
