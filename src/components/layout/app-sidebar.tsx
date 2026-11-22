@@ -8,7 +8,6 @@ import {
   PlusCircle,
   BookImage,
   Truck,
-  Building2,
   Tags,
   Settings,
 } from 'lucide-react'
@@ -43,7 +42,6 @@ const grupos = [
   {
     titulo: 'Ajustes',
     itens: [
-      { href: '/obras', label: 'Obras', icon: Building2 },
       { href: '/categorias', label: 'Categorias', icon: Tags },
       { href: '/configuracoes', label: 'Configurações', icon: Settings },
     ],

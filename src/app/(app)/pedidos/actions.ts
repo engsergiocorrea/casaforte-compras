@@ -129,13 +129,16 @@ export async function createPedido(
         const { error: itensError } = await supabase.from('pedido_compra_itens').insert(
           itens.map((i) => ({ pedido_compra_id: pedido.id, ...i }))
         )
-        destino += itensError ? '?lista=erro' : '?preparar=1'
+        destino += itensError
+          ? `?lista=erro&motivo=${encodeURIComponent(`Erro ao salvar itens: ${itensError.message}`.slice(0, 180))}`
+          : '?preparar=1'
       } else {
         destino += '?lista=vazia'
       }
     } catch (e) {
-      console.error('[IA lista] falhou:', e instanceof Error ? e.message : e)
-      destino += '?lista=erro'
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[IA lista] falhou:', msg)
+      destino += `?lista=erro&motivo=${encodeURIComponent(msg.slice(0, 180))}`
     }
   }
 

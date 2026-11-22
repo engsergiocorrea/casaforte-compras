@@ -35,10 +35,10 @@ export default async function PedidoDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ preparar?: string; lista?: string }>
+  searchParams: Promise<{ preparar?: string; lista?: string; motivo?: string }>
 }) {
   const { id } = await params
-  const { preparar, lista } = await searchParams
+  const { preparar, lista, motivo } = await searchParams
   const supabase = await createServerSupabaseClient()
   const profile = await getCurrentUser()
 
@@ -140,6 +140,7 @@ export default async function PedidoDetailPage({
           {lista === 'vazia'
             ? 'A IA não encontrou materiais na lista colada. Adicione os itens abaixo.'
             : 'Não foi possível ler a lista com a IA agora. Adicione os itens abaixo ou tente de novo.'}
+          {motivo ? <span className="mt-1 block text-xs text-muted-foreground">Detalhe: {motivo}</span> : null}
         </div>
       ) : null}
 
