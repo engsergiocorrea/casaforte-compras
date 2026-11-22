@@ -24,6 +24,11 @@ export function normalizeEnrichmentOutput(
       typeof parsed.confianca === 'number'
         ? Math.max(0, Math.min(1, parsed.confianca))
         : 0.5,
+    material_existente_id:
+      typeof parsed.material_existente_id === 'string' &&
+      input.catalogo?.some((c) => c.id === parsed.material_existente_id)
+        ? parsed.material_existente_id
+        : null,
   }
 }
 

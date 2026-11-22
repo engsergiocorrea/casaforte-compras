@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -88,7 +89,7 @@ export function PedidoCreateForm({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prioridade">Prioridade *</Label>
               <Select name="prioridade" defaultValue="normal">
@@ -110,13 +111,31 @@ export function PedidoCreateForm({
             </div>
           </div>
 
+          <div className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <Label htmlFor="lista_texto" className="flex items-center gap-2 text-base">
+              <Sparkles className="size-4 text-primary" /> Lista de materiais
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Cole ou digite a lista do jeito que vier (mensagem de WhatsApp, anotação). A IA separa
+              os itens, padroniza os nomes e coloca as imagens. Pode deixar em branco e adicionar
+              os itens um a um depois.
+            </p>
+            <Textarea
+              id="lista_texto"
+              name="lista_texto"
+              rows={7}
+              placeholder={'Ex.:\n10 sacos cimento cp2\n50m eletroduto amarelo 25\n5 barras ferro 12.5\n1 carrinho de mão'}
+              className="bg-background"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="observacoes_gerais">Observações gerais</Label>
-            <Textarea id="observacoes_gerais" name="observacoes_gerais" />
+            <Textarea id="observacoes_gerais" name="observacoes_gerais" rows={2} />
           </div>
 
           <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-            {isPending ? 'Criando...' : 'Criar pedido (rascunho)'}
+            {isPending ? 'Criando e lendo a lista…' : 'Criar pedido'}
           </Button>
         </form>
       </CardContent>

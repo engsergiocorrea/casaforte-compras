@@ -5,6 +5,8 @@ export type MaterialEnrichmentInput = {
   unidade?: string | null
   categoria?: string | null
   observacoes?: string | null
+  // Materiais já cadastrados, para a IA reaproveitar em vez de duplicar.
+  catalogo?: { id: string; nome: string; unidade: string | null }[]
 }
 
 export type MaterialEnrichmentOutput = {
@@ -16,6 +18,8 @@ export type MaterialEnrichmentOutput = {
   termos_busca_imagem: string[]
   alertas: string[]
   confianca: number
+  // id de um material do catálogo que é o MESMO produto (null = material novo).
+  material_existente_id?: string | null
 }
 
 export type PreparedOrderItem = {

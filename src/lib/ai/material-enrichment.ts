@@ -25,7 +25,9 @@ function fallbackMaterialEnrichment(
 }
 
 function resolveProvider(): AiProvider {
-  const configured = (process.env.AI_PROVIDER || 'openai').trim().toLowerCase()
+  // Sem AI_PROVIDER definido, usa o Gemini quando houver chave.
+  const padrao = process.env.GEMINI_API_KEY ? 'gemini' : 'openai'
+  const configured = (process.env.AI_PROVIDER || padrao).trim().toLowerCase()
   return configured === 'gemini' ? 'gemini' : 'openai'
 }
 

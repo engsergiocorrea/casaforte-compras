@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -16,13 +16,15 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 
-const TIMEOUT_MS = 30_000
+// Com imagens geradas por IA, pedidos grandes levam alguns minutos.
+const TIMEOUT_MS = 300_000
 
-export function PrepararIaButton({ pedidoId }: { pedidoId: string }) {
+export function PrepararIaButton({ pedidoId, autoStart = false }: { pedidoId: string; autoStart?: boolean }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
+  const iniciou = useRef(false)
 
   function handleConfirm() {
     console.log('[PrepararIA] clique confirmado', pedidoId)
@@ -46,8 +48,8 @@ export function PrepararIaButton({ pedidoId }: { pedidoId: string }) {
           const alertas = result.data?.alertas_gerais?.length ?? 0
           toast.success(
             alertas > 0
-              ? `Pedido preparado com IA. ${alertas} item(ns) precisam de revisão.`
-              : 'Pedido preparado com IA. Todos os itens ficaram com boa confiança.'
+              ? `Pedido preparado com IA. ${alertas} ponto(s) para conferir.`
+              : 'Pedido preparado com IA. Tudo certo.'
           )
           setOpen(false)
           router.refresh()
@@ -69,6 +71,16 @@ export function PrepararIaButton({ pedidoId }: { pedidoId: string }) {
     })
   }
 
+  // Pedido criado a partir de uma lista: já começa a preparar sozinho.
+  useEffect(() => {
+    if (!autoStart || iniciou.current) return
+    iniciou.current = true
+    toast.info('A IA está organizando os itens e gerando as imagens…')
+    router.replace(`/pedidos/${pedidoId}`, { scroll: false })
+    handleConfirm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart])
+
   return (
     <AlertDialog
       open={open}
@@ -84,9 +96,10 @@ export function PrepararIaButton({ pedidoId }: { pedidoId: string }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Preparar pedido com IA</AlertDialogTitle>
           <AlertDialogDescription>
-            A IA vai padronizar os nomes dos materiais, sugerir categoria e unidade, melhorar a
-            especificação técnica e procurar imagens já aprovadas no catálogo. Itens ambíguos ou
-            sem imagem aprovada ficarão marcados para revisão manual.
+            A IA vai padronizar nomes e unidades, ligar cada item ao catálogo (sem duplicar
+            materiais), gerar a imagem dos materiais que ainda não têm e revisar o pedido
+            (itens repetidos, quantidades estranhas, informação faltando). Pode levar alguns
+            minutos em pedidos grandes.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

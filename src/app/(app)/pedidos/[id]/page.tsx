@@ -32,10 +32,13 @@ import type {
 
 export default async function PedidoDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ preparar?: string; lista?: string }>
 }) {
   const { id } = await params
+  const { preparar, lista } = await searchParams
   const supabase = await createServerSupabaseClient()
   const profile = await getCurrentUser()
 
@@ -129,7 +132,16 @@ export default async function PedidoDetailPage({
         itensComRevisao={itensComRevisao}
         fornecedores={fornecedoresTyped}
         fornecedorIdAtual={pedidoTyped.fornecedor_id}
+        autoPrepare={preparar === '1' && itensTyped.length > 0}
       />
+
+      {lista === 'erro' || lista === 'vazia' ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          {lista === 'vazia'
+            ? 'A IA não encontrou materiais na lista colada. Adicione os itens abaixo.'
+            : 'Não foi possível ler a lista com a IA agora. Adicione os itens abaixo ou tente de novo.'}
+        </div>
+      ) : null}
 
       {podeEnviarWhatsapp ? (
         <EnviarWhatsappDialog pedidoId={id} fornecedores={fornecedoresTyped} />

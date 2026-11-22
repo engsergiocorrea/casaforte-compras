@@ -16,6 +16,7 @@ import {
   canStartReview,
 } from '@/lib/permissions/pedido'
 import { devolverSchema, pedidoHeaderSchema, pedidoItemSchema } from '@/lib/validations/pedido'
+import { lerListaDeMateriais } from '@/lib/ai/order-from-text'
 import { generatePurchaseOrderDocument } from '@/lib/pdf/generate-purchase-order-document'
 import { sendWhatsappDocument, sendWhatsappText } from '@/lib/whatsapp/evolution-client'
 import type { ActionResult, FormActionState } from '@/lib/action-result'
@@ -118,8 +119,28 @@ export async function createPedido(
     action: 'criado',
   })
 
+  // Lista colada/ditada: a IA separa os itens e o pedido já abre preparando.
+  const listaTexto = String(formData.get('lista_texto') || '').trim()
+  let destino = `/pedidos/${pedido.id}`
+  if (listaTexto.length >= 3) {
+    try {
+      const itens = await lerListaDeMateriais(listaTexto)
+      if (itens.length > 0) {
+        const { error: itensError } = await supabase.from('pedido_compra_itens').insert(
+          itens.map((i) => ({ pedido_compra_id: pedido.id, ...i }))
+        )
+        destino += itensError ? '?lista=erro' : '?preparar=1'
+      } else {
+        destino += '?lista=vazia'
+      }
+    } catch (e) {
+      console.error('[IA lista] falhou:', e instanceof Error ? e.message : e)
+      destino += '?lista=erro'
+    }
+  }
+
   revalidatePath('/pedidos')
-  redirect(`/pedidos/${pedido.id}`)
+  redirect(destino)
 }
 
 export async function updatePedidoHeader(

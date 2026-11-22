@@ -43,7 +43,20 @@ Regras:
 `
 
 export function buildEnrichmentUserPrompt(input: MaterialEnrichmentInput) {
+  const { catalogo, ...material } = input
+  const blocoCatalogo =
+    catalogo && catalogo.length > 0
+      ? `
+Catálogo atual da Casa Forte (id | nome | unidade):
+${catalogo.map((c) => `${c.id} | ${c.nome} | ${c.unidade ?? '-'}`).join('\n')}
+
+Se o material pedido for o MESMO produto de um item do catálogo (mesmo tipo e mesma
+medida/variação), responda "material_existente_id" com o id dele e use o nome dele em
+"nome_padronizado". Se for diferente (outra medida, outro tipo), use null.
+`
+      : ''
   return `
+${blocoCatalogo}
 Analise este material e retorne JSON com:
 {
   "nome_padronizado": string,
@@ -53,10 +66,11 @@ Analise este material e retorne JSON com:
   "observacao_fornecedor": string,
   "termos_busca_imagem": string[],
   "alertas": string[],
-  "confianca": number
+  "confianca": number,
+  "material_existente_id": string | null
 }
 
 Material:
-${JSON.stringify(input, null, 2)}
+${JSON.stringify(material, null, 2)}
 `
 }

@@ -22,9 +22,9 @@ export default async function NovoPedidoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Novo pedido de compra</h1>
+        <h1 className="text-2xl font-bold">Novo pedido</h1>
         <p className="text-muted-foreground">
-          Informe os dados básicos. Os itens são adicionados na tela do pedido.
+          Escolha a obra e cole a lista de materiais. A IA organiza o resto.
         </p>
       </div>
 

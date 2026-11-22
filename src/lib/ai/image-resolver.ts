@@ -1,11 +1,12 @@
 import { findApprovedMaterialImage } from '@/lib/catalogo/find-material-image'
-import { searchMaterialReferenceImage } from '@/lib/images/search-material-reference-image'
-import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { gerarImagemMaterial } from './material-image'
+import { geminiKey } from './gemini-client'
 
 type ResolveImageInput = {
   materialCatalogoId: string
   categoriaId: string | null
   nomeMaterial: string
+  especificacao?: string | null
   termosBusca: string[]
 }
 
@@ -16,58 +17,28 @@ type ResolveImageResult = {
   precisaRevisao: boolean
 }
 
-// Ordem de resolução: 1) imagem já aprovada no catálogo interno (reuso
-// automático); 2) busca de imagem de referência via provider externo, se
-// configurado, usando o primeiro termo de busca gerado pela IA. Nunca
-// gera/inventa imagem artificial de produto — quando nenhuma das duas
-// fontes encontra algo, retorna null e sinaliza revisão.
+// Ordem: 1) imagem já aprovada no catálogo (reuso); 2) a IA gera uma imagem
+// ilustrativa do material e ela passa a ser a imagem do catálogo. Se a IA
+// falhar, o item fica sem imagem e marcado para revisão.
 export async function resolveMaterialImage({
   materialCatalogoId,
   categoriaId,
   nomeMaterial,
-  termosBusca,
+  especificacao,
 }: ResolveImageInput): Promise<ResolveImageResult> {
-  const existingImage = await findApprovedMaterialImage(materialCatalogoId)
+  const existente = await findApprovedMaterialImage(materialCatalogoId)
+  if (existente) {
+    return { imageUrl: existente.image_url, origem: 'catalogo_interno', aprovada: true, precisaRevisao: false }
+  }
 
-  if (existingImage) {
-    return {
-      imageUrl: existingImage.image_url,
-      origem: 'catalogo_interno',
-      aprovada: true,
-      precisaRevisao: false,
+  if (geminiKey()) {
+    try {
+      const url = await gerarImagemMaterial({ materialCatalogoId, categoriaId, nome: nomeMaterial, especificacao })
+      return { imageUrl: url, origem: 'imagem_ilustrativa', aprovada: true, precisaRevisao: false }
+    } catch (error) {
+      console.error('[IA imagem] falhou:', error instanceof Error ? error.message : error)
     }
   }
 
-  const primeiroTermo = termosBusca[0]
-  const searchResult = primeiroTermo
-    ? await searchMaterialReferenceImage({ termo: primeiroTermo })
-    : null
-
-  if (searchResult) {
-    const supabase = createAdminSupabaseClient()
-    await supabase.from('material_images').insert({
-      material_catalogo_id: materialCatalogoId,
-      categoria_id: categoriaId,
-      nome_material: nomeMaterial,
-      image_url: searchResult.imageUrl,
-      origem: 'referencia_web',
-      termos_busca: termosBusca,
-      aprovado: false,
-      principal: false,
-    })
-
-    return {
-      imageUrl: searchResult.imageUrl,
-      origem: 'referencia_web',
-      aprovada: false,
-      precisaRevisao: true,
-    }
-  }
-
-  return {
-    imageUrl: null,
-    origem: null,
-    aprovada: false,
-    precisaRevisao: true,
-  }
+  return { imageUrl: null, origem: null, aprovada: false, precisaRevisao: true }
 }

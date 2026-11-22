@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
+  Home,
   ClipboardList,
-  Building2,
-  Truck,
-  Tags,
+  PlusCircle,
   BookImage,
-  BarChart3,
+  Truck,
+  Building2,
+  Tags,
   Settings,
 } from 'lucide-react'
 import {
@@ -23,32 +23,42 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { CasaForteLogo } from '@/components/shared/casa-forte-logo'
 
-// Transição para o Portal Casa Forte (cadastro central de pessoas/acessos):
-// os itens "Pessoas e Acessos" e "Engenheiros" foram retirados deste menu
-// porque o cadastro oficial de pessoas — incluindo quem tem cargo/perfil
-// "Engenheiro" — passa a viver no Portal (`/pessoas`), não aqui no Compras.
-// As rotas (`/pessoas`, `/engenheiros`), as tabelas (`profiles`,
-// `engenheiros`, `user_permissions`) e o código por trás continuam
-// existindo sem alteração — nada foi apagado, só deixou de aparecer no
-// menu para o usuário final. Pedidos antigos que referenciam um
-// `engenheiro_id` continuam funcionando normalmente.
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
-  { href: '/obras', label: 'Obras', icon: Building2 },
-  { href: '/fornecedores', label: 'Fornecedores', icon: Truck },
-  { href: '/categorias', label: 'Categorias', icon: Tags },
-  { href: '/catalogo', label: 'Catálogo', icon: BookImage },
-  { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings },
+// Menu enxuto: o dia a dia (pedidos e catálogo) em cima, cadastros de apoio
+// embaixo. Pessoas/Engenheiros vivem no Portal; Relatórios saiu (estava vazio).
+const grupos = [
+  {
+    titulo: 'Compras',
+    itens: [
+      { href: '/dashboard', label: 'Início', icon: Home },
+      { href: '/pedidos/novo', label: 'Novo pedido', icon: PlusCircle },
+      { href: '/pedidos', label: 'Pedidos', icon: ClipboardList },
+      { href: '/catalogo', label: 'Materiais', icon: BookImage },
+      { href: '/fornecedores', label: 'Fornecedores', icon: Truck },
+    ],
+  },
+  {
+    titulo: 'Ajustes',
+    itens: [
+      { href: '/obras', label: 'Obras', icon: Building2 },
+      { href: '/categorias', label: 'Categorias', icon: Tags },
+      { href: '/configuracoes', label: 'Configurações', icon: Settings },
+    ],
+  },
 ]
+
+function ativo(pathname: string, href: string) {
+  if (href === '/pedidos') return pathname === '/pedidos' || (pathname.startsWith('/pedidos/') && !pathname.startsWith('/pedidos/novo'))
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const items = navItems
+  // No celular o menu é uma gaveta: fecha ao escolher um item.
+  const { setOpenMobile } = useSidebar()
 
   return (
     <Sidebar collapsible="icon">
@@ -59,17 +69,16 @@ export function AppSidebar() {
         </span>
       </SidebarHeader>
       <SidebarContent className="px-1 py-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50">Navegação</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
-                return (
+        {grupos.map((grupo) => (
+          <SidebarGroup key={grupo.titulo}>
+            <SidebarGroupLabel className="text-sidebar-foreground/50">{grupo.titulo}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                {grupo.itens.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      render={<Link href={item.href} />}
-                      isActive={isActive}
+                      render={<Link href={item.href} onClick={() => setOpenMobile(false)} />}
+                      isActive={ativo(pathname, item.href)}
                       tooltip={item.label}
                       className="gap-2.5 rounded-lg font-medium data-active:bg-sidebar-primary/15 data-active:text-sidebar-primary data-active:font-semibold"
                     >
@@ -77,11 +86,11 @@ export function AppSidebar() {
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

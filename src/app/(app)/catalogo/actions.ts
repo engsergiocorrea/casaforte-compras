@@ -7,6 +7,8 @@ import { canManageCatalog } from '@/lib/permissions/can'
 import { normalizeText } from '@/lib/utils/normalize-text'
 import { materialCatalogoSchema } from '@/lib/validations/material-catalogo'
 import type { ActionResult, FormActionState } from '@/lib/action-result'
+import { emLotes, geminiKey } from '@/lib/ai/gemini-client'
+import { gerarImagemMaterial } from '@/lib/ai/material-image'
 
 function nullableField(value: string | undefined) {
   return value && value.length > 0 ? value : null
@@ -164,4 +166,43 @@ export async function setMaterialCatalogoAtivo(id: string, ativo: boolean): Prom
 
   revalidatePath('/catalogo')
   return { success: true }
+}
+
+// Gera com IA a imagem dos materiais que ainda não têm imagem principal
+// aprovada. Faz no máximo `limite` por vez (3 em paralelo) para não estourar
+// o tempo da requisição; o botão pode ser clicado de novo para continuar.
+export async function gerarImagensFaltando(limite = 12): Promise<ActionResult & { geradas?: number; faltam?: number }> {
+  try {
+    await assertCanManageCatalogo()
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+  if (!geminiKey()) return { success: false, error: 'IA não configurada no servidor (GEMINI_API_KEY).' }
+
+  const supabase = await createServerSupabaseClient()
+  const [{ data: materiais }, { data: imagens }] = await Promise.all([
+    supabase.from('materiais_catalogo').select('id, nome_padronizado, categoria_id, especificacao_padrao').eq('ativo', true),
+    supabase.from('material_images').select('material_catalogo_id').eq('principal', true).eq('aprovado', true),
+  ])
+  const comImagem = new Set((imagens ?? []).map((i) => i.material_catalogo_id))
+  const pendentes = (materiais ?? []).filter((m) => !comImagem.has(m.id))
+  const lote = pendentes.slice(0, Math.max(1, Math.min(limite, 20)))
+
+  let geradas = 0
+  await emLotes(lote, 3, async (m) => {
+    try {
+      await gerarImagemMaterial({
+        materialCatalogoId: m.id,
+        categoriaId: m.categoria_id,
+        nome: m.nome_padronizado,
+        especificacao: m.especificacao_padrao,
+      })
+      geradas++
+    } catch (error) {
+      console.error('[IA imagem catálogo]', m.nome_padronizado, error instanceof Error ? error.message : error)
+    }
+  })
+
+  revalidatePath('/catalogo')
+  return { success: true, geradas, faltam: pendentes.length - geradas }
 }

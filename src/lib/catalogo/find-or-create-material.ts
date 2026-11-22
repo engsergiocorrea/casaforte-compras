@@ -7,12 +7,24 @@ export async function findOrCreateMaterialFromAI(
   enrichment: MaterialEnrichmentOutput
 ): Promise<MaterialCatalogo> {
   const supabase = createAdminSupabaseClient()
+
+  // A IA reconheceu um material já cadastrado: reaproveita.
+  if (enrichment.material_existente_id) {
+    const { data: escolhido } = await supabase
+      .from('materiais_catalogo')
+      .select('*')
+      .eq('id', enrichment.material_existente_id)
+      .maybeSingle()
+    if (escolhido) return escolhido as MaterialCatalogo
+  }
+
   const normalizedName = normalizeText(enrichment.nome_padronizado)
 
   const { data: existing } = await supabase
     .from('materiais_catalogo')
     .select('*')
     .eq('nome_normalizado', normalizedName)
+    .limit(1)
     .maybeSingle()
 
   if (existing) {

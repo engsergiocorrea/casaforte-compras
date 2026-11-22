@@ -35,6 +35,7 @@ export function PedidoActionsPanel({
   itensComRevisao,
   fornecedores,
   fornecedorIdAtual,
+  autoPrepare = false,
 }: {
   pedidoId: string
   canSendDirectToApproval: boolean
@@ -47,6 +48,7 @@ export function PedidoActionsPanel({
   itensComRevisao: number
   fornecedores: Fornecedor[]
   fornecedorIdAtual: string | null
+  autoPrepare?: boolean
 }) {
   const [fornecedorId, setFornecedorId] = useState<string>(fornecedorIdAtual ?? '')
 
@@ -76,7 +78,7 @@ export function PedidoActionsPanel({
         ) : null}
 
         <div className="flex flex-wrap gap-2">
-          {canPrepareWithIA ? <PrepararIaButton pedidoId={pedidoId} /> : null}
+          {canPrepareWithIA ? <PrepararIaButton pedidoId={pedidoId} autoStart={autoPrepare} /> : null}
 
           {canGeneratePdf && hasItens ? <GerarPdfButton pedidoId={pedidoId} /> : null}
 

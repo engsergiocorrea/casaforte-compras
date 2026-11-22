@@ -2,9 +2,11 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { enrichMaterialWithAI } from '@/lib/ai/material-enrichment'
 import { findOrCreateMaterialFromAI } from '@/lib/catalogo/find-or-create-material'
 import { resolveMaterialImage } from '@/lib/ai/image-resolver'
+import { emLotes } from '@/lib/ai/gemini-client'
+import { revisarPedido } from '@/lib/ai/order-review'
 import { registrarAprovacao, registrarLog } from '@/lib/logs/activity'
 import type { OrderPreparationResult, PreparedOrderItem } from '@/types/ai'
-import type { PedidoCompra, PedidoCompraItem } from '@/types/database'
+import type { MaterialCatalogo, PedidoCompra, PedidoCompraItem } from '@/types/database'
 
 export async function prepareOrderWithAI(
   pedidoId: string,
@@ -43,23 +45,62 @@ export async function prepareOrderWithAI(
 
   const preparedItems: PreparedOrderItem[] = []
   const alertasGerais: string[] = []
+  const itensTyped = itens as PedidoCompraItem[]
 
-  for (const item of itens as PedidoCompraItem[]) {
-    const enrichment = await enrichMaterialWithAI({
+  // Catálogo atual: a IA reaproveita o material em vez de criar duplicado.
+  const { data: catalogoRows } = await supabase
+    .from('materiais_catalogo')
+    .select('id, nome_padronizado, unidade_padrao')
+    .eq('ativo', true)
+    .order('nome_padronizado')
+    .limit(400)
+  const catalogo = (catalogoRows ?? []).map((c) => ({
+    id: c.id as string,
+    nome: c.nome_padronizado as string,
+    unidade: (c.unidade_padrao as string | null) ?? null,
+  }))
+
+  // 1) Padroniza todos os itens em paralelo (até 4 por vez).
+  const enrichments = await emLotes(itensTyped, 4, (item) =>
+    enrichMaterialWithAI({
       nome_material: item.nome_material,
       descricao: item.descricao,
       quantidade: item.quantidade,
       unidade: item.unidade,
       observacoes: item.observacoes,
+      catalogo,
     })
+  )
 
-    const material = await findOrCreateMaterialFromAI(enrichment)
-    const image = await resolveMaterialImage({
-      materialCatalogoId: material.id,
-      categoriaId: material.categoria_id,
-      nomeMaterial: enrichment.nome_padronizado || item.nome_material,
-      termosBusca: enrichment.termos_busca_imagem,
-    })
+  // 2) Liga cada item ao catálogo — em sequência, para dois itens iguais
+  //    não criarem o mesmo material duas vezes.
+  const materiais: MaterialCatalogo[] = []
+  for (const enrichment of enrichments) {
+    materiais.push(await findOrCreateMaterialFromAI(enrichment))
+  }
+
+  // 3) Uma imagem por material (reusa a do catálogo ou a IA gera), 3 por vez.
+  const unicos = [...new Map(materiais.map((m, i) => [m.id, i])).entries()]
+  const imagens = new Map<string, Awaited<ReturnType<typeof resolveMaterialImage>>>()
+  await emLotes(unicos, 3, async ([materialId, i]) => {
+    const m = materiais[i]
+    imagens.set(
+      materialId,
+      await resolveMaterialImage({
+        materialCatalogoId: m.id,
+        categoriaId: m.categoria_id,
+        nomeMaterial: m.nome_padronizado || enrichments[i].nome_padronizado,
+        especificacao: enrichments[i].especificacao_melhorada,
+        termosBusca: enrichments[i].termos_busca_imagem,
+      })
+    )
+  })
+
+  for (let i = 0; i < itensTyped.length; i++) {
+    const item = itensTyped[i]
+    const enrichment = enrichments[i]
+    const material = materiais[i]
+    const image = imagens.get(material.id)!
 
     const precisaRevisao =
       enrichment.confianca < 0.7 || enrichment.alertas.length > 0 || image.precisaRevisao
@@ -68,7 +109,7 @@ export async function prepareOrderWithAI(
       .from('pedido_compra_itens')
       .update({
         material_catalogo_id: material.id,
-        nome_padronizado: enrichment.nome_padronizado,
+        nome_padronizado: material.nome_padronizado || enrichment.nome_padronizado,
         categoria_id: material.categoria_id,
         unidade: item.unidade || enrichment.unidade_sugerida,
         especificacao_tecnica: item.especificacao_tecnica || enrichment.especificacao_melhorada,
@@ -96,7 +137,7 @@ export async function prepareOrderWithAI(
     preparedItems.push({
       item_id: item.id,
       nome_original: item.nome_material,
-      nome_padronizado: enrichment.nome_padronizado,
+      nome_padronizado: material.nome_padronizado || enrichment.nome_padronizado,
       categoria_sugerida: enrichment.categoria_sugerida,
       unidade_sugerida: enrichment.unidade_sugerida,
       especificacao_melhorada: enrichment.especificacao_melhorada,
@@ -111,6 +152,17 @@ export async function prepareOrderWithAI(
     })
   }
 
+  // 4) Revisão do pedido inteiro (duplicados, quantidades estranhas).
+  const alertasPedido = await revisarPedido(
+    preparedItems.map((p, i) => ({
+      nome: p.nome_padronizado,
+      quantidade: Number(itensTyped[i].quantidade),
+      unidade: itensTyped[i].unidade || p.unidade_sugerida,
+      materialId: p.material_catalogo_id ?? null,
+    }))
+  )
+  alertasGerais.unshift(...alertasPedido)
+
   const preparadoEm = new Date().toISOString()
 
   await supabase
@@ -122,10 +174,12 @@ export async function prepareOrderWithAI(
     pedidoCompraId: pedidoId,
     userId: preparadoPor,
     acao: 'ia_preparado',
-    comentario:
-      alertasGerais.length > 0
-        ? `Preparado por IA com ${alertasGerais.length} item(ns) pendente(s) de revisão.`
+    comentario: [
+      preparedItems.some((p) => p.precisa_revisao)
+        ? `Preparado por IA com ${preparedItems.filter((p) => p.precisa_revisao).length} item(ns) para revisar.`
         : 'Preparado por IA. Todos os itens ficaram com boa confiança.',
+      ...alertasPedido.map((a) => `Atenção: ${a}`),
+    ].join('\n'),
   })
 
   await registrarLog(supabase, {
@@ -135,6 +189,7 @@ export async function prepareOrderWithAI(
     action: 'ia_preparado',
     metadata: {
       total_itens: itens.length,
+      alertas_pedido: alertasPedido,
       itens_precisam_revisao: preparedItems.filter((item) => item.precisa_revisao).length,
       alertas: alertasGerais,
     },
