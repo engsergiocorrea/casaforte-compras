@@ -88,6 +88,7 @@ export async function enviarPedidoPorWhatsapp(
     mediaUrl: pedido.pdf_url,
     fileName,
     caption: legenda,
+    pedido: { numero: String(pedido.numero), fornecedor: fornecedor.nome_fantasia, obra: (legenda.match(/Obra:\s*([^\n]+)/)?.[1] ?? 'Casa Forte').replace(/\*/g, '').trim() },
   })
 
   const { error: insertError } = await supabase.from('whatsapp_envios').insert({

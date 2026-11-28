@@ -1,3 +1,4 @@
+import { canalWhatsApp, enviarPelaCentral } from './central-whatsapp'
 // Cliente server-only para a Evolution API (WhatsApp).
 //
 // IMPORTANTE: este arquivo nunca deve ser importado por componentes client.
@@ -143,11 +144,22 @@ async function postToEvolution(
 export async function sendWhatsappText(params: {
   phone: string
   message: string
+  modelo?: { nome: string; campos: Record<string, string> }
 }): Promise<EvolutionSendTextResult> {
   const phone = normalizePhoneNumber(params.phone)
 
   if (!phone) {
     return { success: false, error: 'Telefone do fornecedor inválido.' }
+  }
+
+  if ((await canalWhatsApp()) === 'meta') {
+    const r = await enviarPelaCentral({
+      para: phone,
+      texto: params.message,
+      origem: 'compras',
+      modelo: params.modelo ?? { nome: 'aviso_interno', campos: { assunto: 'Compras', texto: params.message.replace(/\*/g, '').slice(0, 900), quem: 'Compras' } },
+    })
+    return r.ok ? { success: true, messageId: null, raw: null } : { success: false, error: r.erro }
   }
 
   return postToEvolution('/message/sendText/{instance}', {
@@ -168,11 +180,25 @@ export async function sendWhatsappDocument(params: {
   mediaUrl: string
   fileName: string
   caption?: string
+  /** Pedido de compra: usado no modelo aprovado da Meta (fora da janela de 24h). */
+  pedido?: { numero: string; fornecedor: string; obra: string }
 }): Promise<EvolutionSendTextResult> {
   const phone = normalizePhoneNumber(params.phone)
 
   if (!phone) {
     return { success: false, error: 'Telefone do fornecedor inválido.' }
+  }
+
+  if ((await canalWhatsApp()) === 'meta') {
+    const r = await enviarPelaCentral({
+      para: phone,
+      texto: params.caption,
+      documento: { url: params.mediaUrl, nome: params.fileName, mime: 'application/pdf' },
+      origem: 'compras:pedido',
+      nome: params.pedido?.fornecedor,
+      modelo: params.pedido ? { nome: 'pedido_compra', campos: { numero: params.pedido.numero, fornecedor: params.pedido.fornecedor, obra: params.pedido.obra } } : undefined,
+    })
+    return r.ok ? { success: true, messageId: null, raw: null } : { success: false, error: r.erro }
   }
 
   return postToEvolution('/message/sendMedia/{instance}', {

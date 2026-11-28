@@ -557,6 +557,7 @@ async function enviarPedidoAoFornecedorInterno(
     mediaUrl: pedido.pdf_url,
     fileName,
     caption: legenda,
+    pedido: { numero: String(pedido.numero), fornecedor: fornecedor.nome_fantasia, obra: nomeObra },
   })
 
   await supabase.from('whatsapp_envios').insert({
